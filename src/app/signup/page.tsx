@@ -53,12 +53,9 @@ export default function SignUpPage() {
     }
 
     // 3. Insert into profiles table
+    console.log(existingUser);
+    console.log(signUpError);
     if (data.user && !signUpError) {
-      await supabase.from("profiles").insert({
-        id: data.user.id,
-        email,
-      });
-
       alert("Check your email to confirm your account!");
     }
 
