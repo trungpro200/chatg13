@@ -1,19 +1,17 @@
 "use client";
+
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  async function handleLogin(e: React.FormEvent) {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -21,49 +19,64 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(error.message);
-    } else {
-      router.push("/chat");
+      alert(error.message);
+      return;
     }
-    setLoading(false);
-  }
+
+    router.push("/chat");
+  };
 
   return (
-    <main className="h-screen flex items-center justify-center bg-gray-900 text-white">
-      <form
-        onSubmit={handleLogin}
-        className="bg-gray-800 p-6 rounded-lg w-96 space-y-4"
+    <main className="h-screen flex bg-gray-900 text-white">
+      {/* Left branding panel */}
+      <div
+        className="hidden md:flex flex-1 items-center justify-center bg-cover bg-center"
+        style={{ backgroundImage: `url("/images/authbackground.avif")` }}
       >
-        <h1 className="text-xl font-bold text-center">Login</h1>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-500 hover:bg-blue-600 p-2 rounded font-bold"
+        <h1 className="text-4xl font-bold text-white bg-black bg-opacity-50 p-4 rounded">
+          Lunari
+        </h1>
+      </div>
+
+      {/* Right login form */}
+      <div className="flex-1 flex items-center justify-center px-4">
+        <form
+          onSubmit={handleLogin}
+          className="bg-gray-800 p-8 rounded-lg w-full max-w-md space-y-5 shadow-lg"
         >
-          {loading ? "Loading..." : "Login"}
-        </button>
-        <p className="text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-green-400 hover:underline">
-            Sign up
-          </a>
-        </p>
-      </form>
+          <h2 className="text-2xl font-bold text-center">Log In</h2>
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+
+          <button
+            type="submit"
+            className="w-full bg-blue-500 hover:bg-blue-600 p-3 rounded-md font-bold transition"
+          >
+            Log In
+          </button>
+
+          <p className="text-sm text-center text-gray-400">
+            Don’t have an account?{" "}
+            <Link href="/signup" className="text-blue-500 hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </form>
+      </div>
     </main>
   );
 }
