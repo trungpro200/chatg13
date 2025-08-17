@@ -9,13 +9,14 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
@@ -25,7 +26,7 @@ export default function SignUpPage() {
     });
 
     if (error) {
-      alert(error.message);
+      setError(error.message);
       return;
     }
 
@@ -79,6 +80,12 @@ export default function SignUpPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
           />
+
+          <div>
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
+          </div>
 
           <button
             type="submit"

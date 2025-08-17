@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AuthButton from "@/components/AppButton";
 
 export default function Home() {
   return (
@@ -6,9 +7,7 @@ export default function Home() {
       {/* Navbar */}
       <nav className="bg-black py-4 px-8 flex justify-between items-center">
         <h1 className="text-xl font-bold">Lunari</h1>
-        <a href="#" className="hover:underline">
-          Trang chính
-        </a>
+        <AuthButton></AuthButton>
       </nav>
 
       {/* Hero Section */}

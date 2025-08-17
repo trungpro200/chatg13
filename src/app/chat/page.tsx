@@ -1,5 +1,6 @@
 "use client";
-import Image from "next/image";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import Image from "next/image"; 
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
