@@ -32,14 +32,14 @@ export async function middleware(req: NextRequest) {
 
   const pathname = req.nextUrl.pathname;
 
-  // 🔒 Protect /chat routes
+  // Protect /chat routes
   if (!session?.user && pathname.startsWith("/chat")) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 🚫 Redirect logged-in users away from /login & /signup
+  // Redirect logged-in users away from /login & /signup
   if (session?.user && (pathname === "/login" || pathname === "/signup")) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/chat";

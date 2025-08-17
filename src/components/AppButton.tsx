@@ -11,14 +11,13 @@ function AuthButton() {
   const supabase = useSupabase();
 
   //useEffect for dynamic button rendering
-  const checkLogged = async () => {
-    const { data } = await supabase.auth.getUser();
-    setIsLoggedIn(!!data);
-  };
-
   useEffect(() => {
+    const checkLogged = async () => {
+      const { data } = await supabase.auth.getUser();
+      setIsLoggedIn(!!data);
+    };
     checkLogged();
-  }, []);
+  }, [supabase.auth]);
 
   if (isLoggedIn) {
     return (
