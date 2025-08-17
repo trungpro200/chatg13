@@ -84,7 +84,7 @@ export default function Home() {
       </section>
 
       {/* Signup Form */}
-      <section className="bg-gray-900 px-6 py-16">
+      {/* <section className="bg-gray-900 px-6 py-16">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-center text-2xl font-bold mb-10">
             Đăng ký để trải nghiệm Lunari
@@ -113,7 +113,7 @@ export default function Home() {
             </button>
           </form>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="bg-black text-white py-6 px-8 flex justify-between text-sm">
