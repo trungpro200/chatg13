@@ -1,24 +1,8 @@
 "use client";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import Image from "next/image"; 
-
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function ChatPage() {
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.push("/login");
-      else setLoading(false);
-    });
-  }, [router]);
-
-  if (loading) return <p className="text-white">Loading...</p>;
-
   return (
     <main className="flex h-screen bg-gray-900 text-white">
       {/* Server Sidebar */}

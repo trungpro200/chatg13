@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSupabase } from "@/components/SupabaseProvider";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +11,7 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  const supabase = useSupabase();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

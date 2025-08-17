@@ -1,17 +1,19 @@
 "use client";
 
 import React from "react";
-import { supabase } from "@/lib/supabaseClient";
+// import { supabase } from "@/lib/supabaseClient";
+import { useSupabase } from "@/components/SupabaseProvider";
 import { useEffect, useState } from "react";
 
 function AuthButton() {
   // Auth button for directing login/logout page or chat page if logged in
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const supabase = useSupabase();
 
   //useEffect for dynamic button rendering
   const checkLogged = async () => {
     const { data } = await supabase.auth.getUser();
-    setIsLoggedIn(!!data.user);
+    setIsLoggedIn(!!data);
   };
 
   useEffect(() => {

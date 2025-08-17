@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSupabase } from "@/components/SupabaseProvider";
+// import { supabase } from "@/lib/supabaseClient"; //deprecated
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const supabase = useSupabase();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +19,6 @@ export default function LoginPage() {
       email,
       password,
     });
-
     if (error) {
       alert(error.message);
       return;
