@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import Server from "@/components/chat/Server";
+import Channel from "@/components/chat/Channel";
+import Message from "@/components/chat/Message";
+
+export type Guild = {
+  id: string;
+  name: string;
+  owner_id?: string;
+};
 
 export default function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "join" | null>(null);
+  const [guilds, setGuilds] = useState<Guild[]>([]);
+  const [selectedGuild, setSelectedGuild] = useState<Guild | null>(null);
   const router = useRouter();
 
   const rpcDebug = async () => {
@@ -79,65 +90,42 @@ export default function ChatPage() {
     router.refresh();
   };
 
+  useEffect(() => {
+    // Fetch guilds for the logged-in user
+    const fetchGuilds = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      // Select guilds where user is a member or owner (RLS will enforce)
+      const { data, error } = await supabase.from("guilds").select("*");
+      if (error) {
+        console.error("Error fetching guilds:", error);
+        return;
+      }
+      setGuilds(data || []);
+      if (data && data.length > 0 && !selectedGuild) {
+        setSelectedGuild(data[0]);
+      }
+    };
+    fetchGuilds();
+  }, [isModalOpen, selectedGuild]);
+
   return (
     <main className="flex h-screen bg-gray-900 text-white">
-      {/* Guild Sidebar */}
-      <aside className="w-16 bg-gray-800 flex flex-col items-center py-4 space-y-4">
-        <button
-          className="w-12 h-12 bg-gray-700 rounded-full hover:bg-gray-600"
-          onClick={() => setIsModalOpen(true)}
-        >
-          +
-        </button>
-        {/* Example guild */}
-        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-          G
-        </div>
-      </aside>
-
-      {/* Channel Sidebar */}
-      <aside className="w-60 bg-gray-850 p-4 flex flex-col">
-        <h2 className="font-bold mb-4">Guild Name</h2>
-        <nav className="space-y-2">
-          <button
-            className="block w-full text-left px-2 py-1 rounded hover:bg-gray-700"
-            onClick={() => setSelectedChannel("general")}
-          >
-            # general
-          </button>
-          <button
-            className="block w-full text-left px-2 py-1 rounded hover:bg-gray-700"
-            onClick={() => setSelectedChannel("random")}
-          >
-            # random
-          </button>
-        </nav>
-      </aside>
-
-      {/* Chat Window */}
-      <section className="flex-1 flex flex-col">
-        {/* Chat Header */}
-        <header className="h-12 bg-gray-800 px-4 flex items-center border-b border-gray-700">
-          <h3 className="font-semibold">
-            {selectedChannel ? `# ${selectedChannel}` : "Select a channel"}
-          </h3>
-        </header>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <div className="bg-gray-800 p-2 rounded">Hello World!</div>
-          <div className="bg-gray-800 p-2 rounded">Another message...</div>
-        </div>
-
-        {/* Message Input */}
-        <footer className="p-4 border-t border-gray-700">
-          <input
-            type="text"
-            placeholder="Message..."
-            className="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none"
-          />
-        </footer>
-      </section>
+      <Server
+        guilds={guilds}
+        selectedGuild={selectedGuild}
+        setSelectedGuild={setSelectedGuild}
+        setIsModalOpen={setIsModalOpen}
+      />
+      <Channel
+        selectedGuild={selectedGuild}
+        selectedChannel={selectedChannel}
+        setSelectedChannel={setSelectedChannel}
+      />
+      <Message selectedChannel={selectedChannel} />
 
       {/* New guild Modal */}
       {isModalOpen && (
