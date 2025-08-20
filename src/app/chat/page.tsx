@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Server from "@/components/chat/Server";
 import Channel from "@/components/chat/Channel";
 import Message from "@/components/chat/Message";
+import NewModal from "@/components/chat/NewModal";
 
 export type Guild = {
   id: string;
@@ -21,25 +22,7 @@ export default function ChatPage() {
   const [selectedGuild, setSelectedGuild] = useState<Guild | null>(null);
   const router = useRouter();
 
-  const rpcDebug = async () => {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    const frontendUserId = session?.user?.id ?? null;
-
-    // Pass frontendUserId to RPC
-    const { data: debug, error } = await supabase.rpc("debug_auth_context", {
-      frontend_user_id: frontendUserId,
-    });
-
-    console.log("Debug RPC:", debug, "Error:", error);
-    console.log("current session:", await supabase.auth.getSession());
-  };
-
   const handleCreateGuild = async (guildName: string) => {
-    rpcDebug();
     const {
       data: { session },
       error: sessionError,
@@ -128,96 +111,13 @@ export default function ChatPage() {
       <Message selectedChannel={selectedChannel} />
 
       {/* New guild Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setMode(null);
-                }}
-                className="text-gray-400 hover:text-white text-xl font-bold"
-              >
-                X
-              </button>
-            </div>
-            {!mode && (
-              <>
-                <h2 className="text-lg font-bold mb-4">Add a Guild</h2>
-                <button
-                  onClick={() => setMode("create")}
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded mb-2"
-                >
-                  Create a Guild
-                </button>
-                <button
-                  onClick={() => setMode("join")}
-                  className="w-full bg-green-600 hover:bg-green-700 py-2 rounded"
-                >
-                  Join with Invite Code
-                </button>
-              </>
-            )}
-
-            {mode === "create" && (
-              <>
-                <h2 className="text-lg font-bold mb-4">Create a Guild</h2>
-                <input
-                  type="text"
-                  placeholder="Guild name"
-                  className="w-full p-2 rounded bg-gray-700 mb-4"
-                  id="guild-name-input"
-                />
-                <div className="flex justify-end space-x-2">
-                  <button
-                    className="px-4 py-2 bg-gray-600 rounded"
-                    onClick={() => setMode(null)}
-                  >
-                    Back
-                  </button>
-                  <button
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
-                    onClick={() => {
-                      const name = (
-                        document.querySelector<HTMLInputElement>(
-                          "#guild-name-input"
-                        )?.value || ""
-                      ).trim();
-                      console.log("Creating guild with name:", name);
-                      if (name) handleCreateGuild(name);
-                    }}
-                  >
-                    Create
-                  </button>
-                </div>
-              </>
-            )}
-
-            {mode === "join" && (
-              <>
-                <h2 className="text-lg font-bold mb-4">Join a Guild</h2>
-                <input
-                  type="text"
-                  placeholder="Invitation Code"
-                  className="w-full p-2 rounded bg-gray-700 mb-4"
-                />
-                <div className="flex justify-end space-x-2">
-                  <button
-                    className="px-4 py-2 bg-gray-600 rounded"
-                    onClick={() => setMode(null)}
-                  >
-                    Back
-                  </button>
-                  <button className="px-4 py-2 bg-green-600 rounded">
-                    Join
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <NewModal
+        isOpen={isModalOpen}
+        mode={mode}
+        setIsOpen={setIsModalOpen}
+        setMode={setMode}
+        handleCreateGuild={handleCreateGuild}
+      />
     </main>
   );
 }
