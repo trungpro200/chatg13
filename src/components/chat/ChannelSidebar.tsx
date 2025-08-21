@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Settings } from "lucide-react";
 
 type Channel = {
   id: string;
@@ -28,24 +29,38 @@ type ChannelProps = {
   channel_id: string;
   channel_name: string;
   setSelectedChannel: (id: string | null) => void;
+  selectedChannel: string | null;
 }
 
 function Channel_({
   channel_id,
   channel_name,
   setSelectedChannel,
+  selectedChannel,
 }: ChannelProps) {
+  const isActive = selectedChannel === channel_id;
   return (
+    <div className={`flex items-center justify-between group px-2 py-1 rounded cursor-pointer
+    ${isActive ? "bg-gray-600 text-white" : "hover:bg-gray-700 text-gray-300"}`}
+    >
     <button
       className="w-full text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
       onClick={() => setSelectedChannel(channel_id)}
     >
       #{channel_name}
     </button>
+    {/* {Icon Settings} */}
+    <button
+      className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white"
+    >
+      <Settings size={15}/>
+      </button>
+    </div>
+    
   );}
 
 
-export default function Channel({
+export default function ChannelSidebar({
   selectedGuild,
   selectedChannel,
   setSelectedChannel,
@@ -105,6 +120,7 @@ export default function Channel({
               channel_id={channel.id}
               channel_name={channel.name}
               setSelectedChannel={setSelectedChannel}
+              selectedChannel={selectedChannel} 
             />
           </li>
         ))}

@@ -1,5 +1,14 @@
 import React, { useRef } from "react";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 type NewModalProps = {
   isOpen: boolean;
   mode: "create" | "join" | null;
@@ -17,98 +26,86 @@ const NewModal: React.FC<NewModalProps> = ({
 }) => {
   const guildNameRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 p-6 rounded-lg w-96">
-        {/* Title and Close button inline */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="bg-gray-800 text-white">
+        <DialogHeader>
+          <DialogTitle>
             {!mode
               ? "Add a Guild"
               : mode === "create"
               ? "Create a Guild"
               : "Join a Guild"}
-          </h2>
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              setMode(null);
-            }}
-            className="text-gray-400 hover:text-white text-xl font-bold"
-            aria-label="Close"
-          >
-            X
-          </button>
-        </div>
-        {/* Modal content */}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === null &&
+              ""}
+          </DialogDescription>
+        </DialogHeader>
+
         {!mode && (
-          <>
-            <button
+          <div className="flex flex-col gap-2">
+            <Button
               onClick={() => setMode("create")}
-              className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded mb-2"
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Create a Guild
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setMode("join")}
-              className="w-full bg-green-600 hover:bg-green-700 py-2 rounded"
+              className="bg-green-600 hover:bg-green-700"
             >
               Join with Invite Code
-            </button>
-          </>
+            </Button>
+          </div>
         )}
 
+        {/* Create Guild */}
         {mode === "create" && (
           <>
-            <input
+            <Input
               type="text"
               placeholder="Guild name"
-              className="w-full p-2 rounded bg-gray-700 mb-4"
               ref={guildNameRef}
+              className="bg-gray-700 text-white"
             />
-            <div className="flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 bg-gray-600 rounded"
-                onClick={() => setMode(null)}
-              >
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setMode(null)}>
                 Back
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   const name = guildNameRef.current?.value.trim() || "";
                   if (name) handleCreateGuild(name);
                 }}
               >
                 Create
-              </button>
-            </div>
+              </Button>
+            </DialogFooter>
           </>
         )}
 
+        {/* Join Guild */}
         {mode === "join" && (
           <>
-            <input
+            <Input
               type="text"
               placeholder="Invitation Code"
-              className="w-full p-2 rounded bg-gray-700 mb-4"
+              className="bg-gray-700 text-white"
             />
-            <div className="flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 bg-gray-600 rounded"
-                onClick={() => setMode(null)}
-              >
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setMode(null)}>
                 Back
-              </button>
-              <button className="px-4 py-2 bg-green-600 rounded">Join</button>
-            </div>
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700">Join</Button>
+            </DialogFooter>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default NewModal;
+
