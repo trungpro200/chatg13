@@ -104,7 +104,7 @@ export default function ChatPage() {
         setSelectedGuild={setSelectedGuild}
         setIsModalOpen={setIsModalOpen}
       />
-      <Channel
+      <ChannelSidebar
         selectedGuild={selectedGuild}
         selectedChannel={selectedChannel}
         setSelectedChannel={setSelectedChannel}
