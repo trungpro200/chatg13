@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import Server from "@/components/chat/Server";
+import Server from "@/components/chat/ServerSidebar";
 import Channel from "@/components/chat/Channel";
 import Message from "@/components/chat/Message";
 import NewModal from "@/components/chat/NewModal";
+import ServerSidebar from "@/components/chat/ServerSidebar";
 
 export type Guild = {
   id: string;
@@ -97,7 +98,7 @@ export default function ChatPage() {
 
   return (
     <main className="flex h-screen bg-gray-900 text-white">
-      <Server
+      <ServerSidebar
         guilds={guilds}
         selectedGuild={selectedGuild}
         setSelectedGuild={setSelectedGuild}
