@@ -21,7 +21,7 @@ type Channel = {
 type SidebarProps = {
   selectedGuild: Guild | null;
   selectedChannel: string | null;
-  setSelectedChannel: (id: string | null) => void;
+  setSelectedChannel: (id: string | null) => void; //This shit referencing a useState Function
 };
 
 type ChannelProps = {
@@ -38,7 +38,7 @@ function Channel_({
   return (
     <button
       className="w-full text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
-      onClick={() => setSelectedChannel(channel_id)}
+      onClick={() => setSelectedChannel(channel_name)}
     >
       #{channel_name}
     </button>
@@ -92,7 +92,8 @@ export default function ChannelSidebar({
     setChannels((prev) => [...prev, data]);
     setNewChannelName("");
     setOpen(false); // Đóng modal sau khi thêm channel
-    setSelectedChannel(data.id); // Chọn channel mới tạo
+    console.log("Channel created:", data);
+    setSelectedChannel(data.name); // Chọn channel mới tạo
   };
 
   return (

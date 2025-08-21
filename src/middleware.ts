@@ -25,22 +25,22 @@ export async function middleware(req: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // console.log("Middleware session:", session?.user);
 
   const pathname = req.nextUrl.pathname;
 
   // Protect /chat routes
-  if (!session?.user && pathname.startsWith("/chat")) {
+  if (!user && pathname.startsWith("/chat")) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect logged-in users away from /login & /signup
-  if (session?.user && (pathname === "/login" || pathname === "/signup")) {
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/chat";
     return NextResponse.redirect(redirectUrl);
