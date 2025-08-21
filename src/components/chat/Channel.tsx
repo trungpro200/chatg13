@@ -46,7 +46,7 @@ export default function Channel({
 
   return (
     <aside className="w-64 bg-gray-800 p-4">
-      <h3 className="text-md font-bold mb-2">Channels</h3>
+      <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
       <ul>
         {channels.map((channel) => (
           <li key={channel.id}>
