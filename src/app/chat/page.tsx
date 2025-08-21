@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import Server from "@/components/chat/ServerSidebar";
-import Channel from "@/components/chat/ChannelSidebar";
 import Message from "@/components/chat/Message";
 import NewModal from "@/components/chat/NewModal";
 import ServerSidebar from "@/components/chat/ServerSidebar";
+import ChannelSidebar from "@/components/chat/ChannelSidebar";
 
 export type Guild = {
   id: string;

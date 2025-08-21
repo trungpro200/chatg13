@@ -61,7 +61,7 @@ function Channel_({
 }
 
 
-export default function Channel({
+export default function ChannelSidebar({
   selectedGuild,
   selectedChannel,
   setSelectedChannel,
