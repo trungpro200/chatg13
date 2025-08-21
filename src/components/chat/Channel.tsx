@@ -18,7 +18,7 @@ type Channel = {
   guild_id: string;
 };
 
-type Props = {
+type SidebarProps = {
   selectedGuild: Guild | null;
   selectedChannel: string | null;
   setSelectedChannel: (id: string | null) => void;
@@ -28,7 +28,7 @@ type ChannelProps = {
   channel_id: string;
   channel_name: string;
   setSelectedChannel: (id: string | null) => void;
-}
+};
 
 function Channel_({
   channel_id,
@@ -42,14 +42,14 @@ function Channel_({
     >
       #{channel_name}
     </button>
-  );}
+  );
+}
 
-
-export default function Channel({
+export default function ChannelSidebar({
   selectedGuild,
   selectedChannel,
   setSelectedChannel,
-}: Props) {
+}: SidebarProps) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelName, setNewChannelName] = useState("");
   const [open, setOpen] = useState(false); // state mở modal

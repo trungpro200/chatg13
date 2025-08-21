@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import Server from "@/components/chat/ServerSidebar";
-import Channel from "@/components/chat/Channel";
+import ChannelSidebar from "@/components/chat/Channel";
 import Message from "@/components/chat/Message";
 import NewModal from "@/components/chat/NewModal";
 import ServerSidebar from "@/components/chat/ServerSidebar";
@@ -104,7 +103,7 @@ export default function ChatPage() {
         setSelectedGuild={setSelectedGuild}
         setIsModalOpen={setIsModalOpen}
       />
-      <Channel
+      <ChannelSidebar
         selectedGuild={selectedGuild}
         selectedChannel={selectedChannel}
         setSelectedChannel={setSelectedChannel}
