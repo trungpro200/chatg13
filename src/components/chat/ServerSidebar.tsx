@@ -6,6 +6,7 @@ type Props = {
   selectedGuild: Guild | null;
   setSelectedGuild: (guild: Guild) => void;
   setIsModalOpen: (open: boolean) => void;
+  onRightClickGuild?: (e: React.MouseEvent, guild: Guild) => void;
 };
 
 export default function ServerSidebar({
@@ -13,6 +14,7 @@ export default function ServerSidebar({
   selectedGuild,
   setSelectedGuild,
   setIsModalOpen,
+  onRightClickGuild,
 }: Props) {
   return (
     <aside className="w-16 bg-gray-800 flex flex-col items-center py-4 space-y-4">
@@ -31,6 +33,7 @@ export default function ServerSidebar({
             } hover:bg-blue-600`}
           title={guild.name}
           onClick={() => setSelectedGuild(guild)}
+          onContextMenu={(e) => onRightClickGuild?.(e, guild)}
         >
           {guild.name[0]?.toUpperCase() || "G"}
         </div>

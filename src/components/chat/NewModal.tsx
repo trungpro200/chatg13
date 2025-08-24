@@ -104,6 +104,8 @@ const NewModal: React.FC<NewModalProps> = ({
         )}
       </DialogContent>
     </Dialog>
+
+    
   );
 };
 

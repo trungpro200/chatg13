@@ -7,6 +7,7 @@ import Message from "@/components/chat/Message";
 import NewModal from "@/components/chat/NewModal";
 import ServerSidebar from "@/components/chat/ServerSidebar";
 import ChannelSidebar from "@/components/chat/ChannelSidebar";
+import RenameModal from "@/components/chat/RenameModal";
 
 export type Guild = {
   id: string;
@@ -21,6 +22,25 @@ export default function ChatPage() {
   const [guilds, setGuilds] = useState<Guild[]>([]);
   const [selectedGuild, setSelectedGuild] = useState<Guild | null>(null);
   const router = useRouter();
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<Guild | null>(null);
+
+
+const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    guild: Guild | null;
+  }>({ visible: false, x: 0, y: 0, guild: null });
+
+  const handleRightClickGuild = (e: React.MouseEvent, guild: Guild) => {
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      guild,
+    });
+  };
 
   const handleCreateGuild = async (guildName: string) => {
     const {
@@ -73,6 +93,54 @@ export default function ChatPage() {
     router.refresh();
   };
 
+const handleRenameGuild = async (guildId: string, newName: string) => { // Thay tên nhóm
+  // update ở local state
+  setGuilds((prev) =>
+    prev.map((g) => (g.id === guildId ? { ...g, name: newName } : g))
+  );
+  setSelectedGuild((prev) =>
+    prev && prev.id === guildId ? { ...prev, name: newName } : prev
+  );
+
+  // gọi supabase update
+  const { error } = await supabase
+    .from("guilds")
+    .update({ name: newName })
+    .eq("id", guildId);
+
+  if (error) {
+    console.error("Error renaming guild:", error);
+    alert("Đổi tên thất bại: " + error.message);
+  }
+};
+
+
+const handleLeaveGuild = async (guildId: string) => { // Rời nhóm
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) return;
+
+  const { error } = await supabase
+    .from("guild_members")
+    .delete()
+    .eq("guild_id", guildId)
+    .eq("user_id", session.user.id);
+
+  if (error) {
+    console.error("Error leaving guild:", error);
+    alert("Rời nhóm thất bại: " + error.message);
+    return;
+  }
+
+  // cập nhật lại state local
+  setGuilds((prev) => prev.filter((g) => g.id !== guildId));
+  if (selectedGuild?.id === guildId) {
+    setSelectedGuild(null);
+  }
+};
+
+
   useEffect(() => {
     // Fetch guilds for the logged-in user
     const fetchGuilds = async () => {
@@ -82,7 +150,7 @@ export default function ChatPage() {
       if (!session?.user) return;
 
       // Select guilds where user is a member or owner (RLS will enforce)
-      const { data, error } = await supabase.from("guilds").select("*");
+      const { data, error } = await supabase.from("guilds").select("id, name, owner_id, guild_members!inner(user_id)").eq("guild_members.user_id", session.user.id);
       if (error) {
         console.error("Error fetching guilds:", error);
         return;
@@ -95,6 +163,25 @@ export default function ChatPage() {
     fetchGuilds();
   }, [isModalOpen, selectedGuild]);
 
+useEffect(() => {
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault(); // chặn context menu mặc định ở mọi nơi
+  };
+  window.addEventListener("contextmenu", handleContextMenu);
+  return () => window.removeEventListener("contextmenu", handleContextMenu);
+}, []);
+
+
+useEffect(() => { // đóng menu guild khi nhấp click ngoài menu
+  const handleClick = () => {
+    if (contextMenu.visible) {
+      setContextMenu({ ...contextMenu, visible: false });
+    }
+  };
+  window.addEventListener("click", handleClick);
+  return () => window.removeEventListener("click", handleClick);
+}, [contextMenu]);
+
   return (
     <main className="flex h-screen bg-gray-900 text-white">
       <ServerSidebar
@@ -102,6 +189,7 @@ export default function ChatPage() {
         selectedGuild={selectedGuild}
         setSelectedGuild={setSelectedGuild}
         setIsModalOpen={setIsModalOpen}
+        onRightClickGuild={handleRightClickGuild}
       />
       <ChannelSidebar
         selectedGuild={selectedGuild}
@@ -118,6 +206,42 @@ export default function ChatPage() {
         setMode={setMode}
         handleCreateGuild={handleCreateGuild}
       />
+
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        guild={renameTarget}
+        onClose={() => setIsRenameModalOpen(false)}
+        onRename={handleRenameGuild}
+      />
+
+
+      {contextMenu.visible && contextMenu.guild && (
+        <ul
+          className="absolute bg-gray-800 text-white shadow-lg rounded-md py-2 z-50"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <li
+            className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+            onClick={() => {
+              setRenameTarget(contextMenu.guild);
+              setIsRenameModalOpen(true);
+              setContextMenu({ ...contextMenu, visible: false });
+            }}
+          >
+            Đổi tên nhóm
+          </li>
+          <li
+            className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+            onClick={() => {
+              if (contextMenu.guild) handleLeaveGuild(contextMenu.guild.id);
+              setContextMenu({ ...contextMenu, visible: false });
+            }}
+          >
+            Rời nhóm
+          </li>
+        </ul>
+      )}
+
     </main>
   );
 }
