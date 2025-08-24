@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings } from "lucide-react";
+import { Settings, Mic, Check } from "lucide-react";
 
 type Channel = {
   id: string;
   name: string;
   guild_id: string;
+  type : "text" | "voice";
 };
 
 type SidebarProps = {
@@ -28,6 +29,7 @@ type SidebarProps = {
 type ChannelProps = {
   channel_id: string;
   channel_name: string;
+  channel_type :"text" | "voice";
   setSelectedChannel: (id: string | null) => void;
   selectedChannel: string | null;
 };
@@ -35,6 +37,7 @@ type ChannelProps = {
 function Channel_({
   channel_id,
   channel_name,
+  channel_type,
   setSelectedChannel,
   selectedChannel,
 }: ChannelProps) {
@@ -44,11 +47,18 @@ function Channel_({
     ${isActive ? "bg-gray-600 text-white" : "hover:bg-gray-700 text-gray-300"}`}
     >
     <button
-      className="w-full text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
+      className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
       onClick={() => setSelectedChannel(channel_name)}
     >
-      #{channel_name}
+      {channel_type === "text" ? (
+        <span className = "text-gray-400">#</span>
+
+      ) : (
+        <Mic size = {15} className = "text-gray-400"/>
+      )}
+      {channel_name}
     </button>
+    
     {/* {Icon Settings} */}
     <button
       className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white"
@@ -69,6 +79,7 @@ export default function ChannelSidebar({
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelName, setNewChannelName] = useState("");
   const [open, setOpen] = useState(false); // state mở modal
+  const [channelType, setchannelType] = useState<"text" | "voice">("text");
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -96,7 +107,7 @@ export default function ChannelSidebar({
 
     const { data, error } = await supabase
       .from("channels")
-      .insert([{ name: newChannelName, guild_id: selectedGuild.id }])
+      .insert([{ name: newChannelName, guild_id: selectedGuild.id, type: channelType }])
       .select()
       .single();
 
@@ -107,6 +118,7 @@ export default function ChannelSidebar({
 
     setChannels((prev) => [...prev, data]);
     setNewChannelName("");
+    setchannelType("text");
     setOpen(false); // Đóng modal sau khi thêm channel
     console.log("Channel created:", data);
     setSelectedChannel(data.name); // Chọn channel mới tạo
@@ -121,6 +133,7 @@ export default function ChannelSidebar({
             <Channel_
               channel_id={channel.id}
               channel_name={channel.name}
+              channel_type={channel.type}
               setSelectedChannel={setSelectedChannel}
               selectedChannel={selectedChannel} 
             />
@@ -148,13 +161,32 @@ export default function ChannelSidebar({
           <DialogHeader>
             <DialogTitle>Create a new channel</DialogTitle>
           </DialogHeader>
+
+          <div className="flex gap-2 mt-2">
+            <Button
+              onClick={() => setchannelType("text")}
+              className={`flex items-center justify-between px-3 py-2 rounded transition
+                ${channelType === "text" ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
+            >
+              Text
+            </Button>
+            <Button
+              onClick={() => setchannelType("voice")}
+              className={`flex items-center justify-between px-3 py-2 rounded transition
+                ${channelType === "voice" ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
+            >
+              Voice
+            </Button>
+          </div>
+
           <Input
             type="text"
             placeholder="Enter channel name..."
             value={newChannelName}
             onChange={(e) => setNewChannelName(e.target.value)}
-            className="bg-gray-700 text-white mt-2"
+            className="bg-gray-700 text-white mt-4"
           />
+
           <DialogFooter>
             <Button
               variant="secondary"
