@@ -1,39 +1,59 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Guild } from "@/app/chat/page";
+import { renameGuild } from "@/utils/guild/manager";
 type RenameModalProps = {
   isOpen: boolean;
-  guild: Guild | null;
+  guildId: number | null;
+  initialName?: string;
   onClose: () => void;
-  onRename: (guildId: string, newName: string) => void;
+  onRenameSuccess?: (guildId: number, newName: string) => void;
 };
 
 const RenameModal: React.FC<RenameModalProps> = ({
   isOpen,
-  guild,
+  guildId,
+  initialName,
   onClose,
-  onRename,
+  onRenameSuccess,
 }) => {
   const nameRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
 
   // Khi mở modal, tự động focus vào ô input
   useEffect(() => {
     if (isOpen && nameRef.current) {
       nameRef.current.focus();
-      if (guild?.name) {
-        nameRef.current.value = guild.name;
+      if (initialName) {
+        nameRef.current.value = initialName || "";
       }
     }
-  }, [isOpen, guild]);
+  }, [isOpen, initialName]);
+
+  const handleSave = async () => {
+    const newName = nameRef.current?.value.trim();
+    if (!guildId || !newName) return;
+
+    setLoading(true);
+    const updatedGuild = await renameGuild(guildId, newName);
+    setLoading(false);
+
+    if (!updatedGuild) {
+      alert("Đổi tên thất bại!");
+      return;
+    }
+
+    // gọi callback để update local state
+    onRenameSuccess?.(guildId, updatedGuild.name);
+    onClose();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -47,21 +67,17 @@ const RenameModal: React.FC<RenameModalProps> = ({
           placeholder="Nhập tên mới"
           ref={nameRef}
           className="bg-gray-700 text-white"
+          disabled={loading}
         />
 
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>
           <Button
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              const newName = nameRef.current?.value.trim();
-              if (guild && newName) {
-                onRename(guild.id, newName);
-                onClose();
-              }
-            }}
+            onClick={handleSave}
+            disabled={loading}
           >
             Lưu
           </Button>

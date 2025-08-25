@@ -7,7 +7,9 @@ import Message from "@/components/chat/Message";
 import NewModal from "@/components/chat/NewModal";
 import ServerSidebar from "@/components/chat/ServerSidebar";
 import ChannelSidebar from "@/components/chat/ChannelSidebar";
+import ContextMenu from "@/components/ContextMenu";
 import RenameModal from "@/components/chat/RenameModal";
+import LeaveGuildModal from "@/components/chat/LeaveGuildModal";
 
 export type Guild = {
   id: string;
@@ -24,6 +26,9 @@ export default function ChatPage() {
   const router = useRouter();
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<Guild | null>(null);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [leaveTarget, setLeaveTarget] = useState<Guild | null>(null);
+
 
 
 const [contextMenu, setContextMenu] = useState<{
@@ -93,53 +98,6 @@ const [contextMenu, setContextMenu] = useState<{
     router.refresh();
   };
 
-const handleRenameGuild = async (guildId: string, newName: string) => { // Thay tên nhóm
-  // update ở local state
-  setGuilds((prev) =>
-    prev.map((g) => (g.id === guildId ? { ...g, name: newName } : g))
-  );
-  setSelectedGuild((prev) =>
-    prev && prev.id === guildId ? { ...prev, name: newName } : prev
-  );
-
-  // gọi supabase update
-  const { error } = await supabase
-    .from("guilds")
-    .update({ name: newName })
-    .eq("id", guildId);
-
-  if (error) {
-    console.error("Error renaming guild:", error);
-    alert("Đổi tên thất bại: " + error.message);
-  }
-};
-
-
-const handleLeaveGuild = async (guildId: string) => { // Rời nhóm
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) return;
-
-  const { error } = await supabase
-    .from("guild_members")
-    .delete()
-    .eq("guild_id", guildId)
-    .eq("user_id", session.user.id);
-
-  if (error) {
-    console.error("Error leaving guild:", error);
-    alert("Rời nhóm thất bại: " + error.message);
-    return;
-  }
-
-  // cập nhật lại state local
-  setGuilds((prev) => prev.filter((g) => g.id !== guildId));
-  if (selectedGuild?.id === guildId) {
-    setSelectedGuild(null);
-  }
-};
-
 
   useEffect(() => {
     // Fetch guilds for the logged-in user
@@ -172,16 +130,6 @@ useEffect(() => {
 }, []);
 
 
-useEffect(() => { // đóng menu guild khi nhấp click ngoài menu
-  const handleClick = () => {
-    if (contextMenu.visible) {
-      setContextMenu({ ...contextMenu, visible: false });
-    }
-  };
-  window.addEventListener("click", handleClick);
-  return () => window.removeEventListener("click", handleClick);
-}, [contextMenu]);
-
   return (
     <main className="flex h-screen bg-gray-900 text-white">
       <ServerSidebar
@@ -209,38 +157,45 @@ useEffect(() => { // đóng menu guild khi nhấp click ngoài menu
 
       <RenameModal
         isOpen={isRenameModalOpen}
-        guild={renameTarget}
+        guildId={renameTarget?.id ? Number(renameTarget.id) : null}
+        initialName={renameTarget?.name}
         onClose={() => setIsRenameModalOpen(false)}
-        onRename={handleRenameGuild}
+        onRenameSuccess={(guildId, newName) => {
+          setGuilds((prev) =>
+            prev.map((g) => (Number(g.id) === guildId ? { ...g, name: newName } : g))
+          );
+          setSelectedGuild((prev) =>
+            prev && Number(prev.id) === guildId ? { ...prev, name: newName } : prev
+          );
+        }}
       />
 
+      <LeaveGuildModal
+        isOpen={isLeaveModalOpen}
+        guildId={leaveTarget?.id ? Number(leaveTarget.id) : null}
+        onClose={() => setIsLeaveModalOpen(false)}
+        onLeaveSuccess={(guildId) => {
+          setGuilds((prev) => prev.filter((g) => Number(g.id) !== guildId));
+          if (selectedGuild && Number(selectedGuild.id) === guildId) setSelectedGuild(null);
+        }}
+      />
 
-      {contextMenu.visible && contextMenu.guild && (
-        <ul
-          className="absolute bg-gray-800 text-white shadow-lg rounded-md py-2 z-50"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <li
-            className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-            onClick={() => {
-              setRenameTarget(contextMenu.guild);
-              setIsRenameModalOpen(true);
-              setContextMenu({ ...contextMenu, visible: false });
-            }}
-          >
-            Đổi tên nhóm
-          </li>
-          <li
-            className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-            onClick={() => {
-              if (contextMenu.guild) handleLeaveGuild(contextMenu.guild.id);
-              setContextMenu({ ...contextMenu, visible: false });
-            }}
-          >
-            Rời nhóm
-          </li>
-        </ul>
-      )}
+      {contextMenu.visible && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          guild={contextMenu.guild}
+          onClose={() => setContextMenu({ ...contextMenu, visible: false })}
+          onRename={(guild) => {
+            setRenameTarget(guild);
+            setIsRenameModalOpen(true);
+          }}
+          onLeave={(guild) => {
+            setLeaveTarget(guild);
+            setIsLeaveModalOpen(true);
+          }}
+        />
+        )}
 
     </main>
   );
