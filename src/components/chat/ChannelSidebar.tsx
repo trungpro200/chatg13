@@ -13,17 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Mic, Check } from "lucide-react";
 
-type Channel = {
-  id: string;
-  name: string;
-  guild_id: string;
-  type: "text" | "voice";
-};
-
 enum channel_types {
   TEXT = "GUILD_TEXT",
   VOICE = "GUILD_VOICE",
 }
+
+type Channel = {
+  id: string;
+  name: string;
+  guild_id: string;
+  type: channel_types;
+};
+
 
 type SidebarProps = {
   selectedGuild: Guild | null;
