@@ -12,6 +12,7 @@ import RenameModal from "@/components/chat/RenameModal";
 import LeaveGuildModal from "@/components/chat/LeaveGuildModal";
 import { getGuildInvite, createInvite } from "@/utils/guild/invite";
 import { Guild } from "@/utils/guild/types";
+import InviteCodeModal from "@/components/chat/InviteModal";
 
 export default function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -24,6 +25,8 @@ export default function ChatPage() {
   const [renameTarget, setRenameTarget] = useState<Guild | null>(null);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaveTarget, setLeaveTarget] = useState<Guild | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const [guildContextMenu, setGuildContextMenu] = useState<{
     visible: boolean;
@@ -96,18 +99,14 @@ export default function ChatPage() {
     if (!guild) return;
 
     let invite = await getGuildInvite(guild);
-    if (invite) {
-      //Return existed invite to user
-      alert(`Invite created! ID: ${invite.id}`);
-      return;
-    }
-    invite = await createInvite(guild);
-
     if (!invite) {
-      return;
+      invite = await createInvite(guild);
     }
 
-    alert(`Invite created! ID: ${invite.id}`);
+    if (invite) {
+      setInviteLink(invite.id);
+      setIsInviteModalOpen(true);
+    }
   }
 
   /*Dynamically update guild list*/
@@ -197,6 +196,11 @@ export default function ChatPage() {
           if (selectedGuild && Number(selectedGuild.id) === guildId)
             setSelectedGuild(null);
         }}
+      />
+      <InviteCodeModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        inviteCode={inviteLink}
       />
 
       {/* Context menu for guild actions */}

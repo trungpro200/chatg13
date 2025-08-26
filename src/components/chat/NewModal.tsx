@@ -28,6 +28,7 @@ const NewModal: React.FC<NewModalProps> = ({
   const guildNameRef = useRef<HTMLInputElement>(null);
 
   return (
+
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="bg-gray-800 text-white">
         <DialogHeader>
