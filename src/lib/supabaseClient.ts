@@ -12,4 +12,4 @@ const createClient = () =>
     }
   );
 
-export const supabase = createClient();
+export const supabase = createClient(); //Browser client for Supabase

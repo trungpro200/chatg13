@@ -12,19 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Mic, Check } from "lucide-react";
+import { channel_types, Channel } from "@/utils/guild/types";
 
-enum channel_types {
-  TEXT = "GUILD_TEXT",
-  VOICE = "GUILD_VOICE",
-}
-
-type Channel = {
-  id: string;
-  name: string;
-  guild_id: string;
-  type: channel_types;
+type ChannelProps = {
+  channel: Channel;
+  setSelectedChannel: (id: string | null) => void;
+  selectedChannel: string | null;
 };
-
 
 type SidebarProps = {
   selectedGuild: Guild | null;
@@ -32,22 +26,12 @@ type SidebarProps = {
   setSelectedChannel: (id: string | null) => void; //This shit referencing a useState Function
 };
 
-type ChannelProps = {
-  channel_id: string;
-  channel_name: string;
-  channel_type: channel_types;
-  setSelectedChannel: (id: string | null) => void;
-  selectedChannel: string | null;
-};
-
 function Channel_({
-  channel_id,
-  channel_name,
-  channel_type,
+  channel,
   setSelectedChannel,
   selectedChannel,
 }: ChannelProps) {
-  const isActive = selectedChannel === channel_id;
+  const isActive = selectedChannel === channel.id;
   return (
     <div
       className={`flex items-center justify-between group px-2 py-1 rounded cursor-pointer
@@ -55,14 +39,14 @@ function Channel_({
     >
       <button
         className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
-        onClick={() => setSelectedChannel(channel_name)}
+        onClick={() => setSelectedChannel(channel.name)}
       >
-        {channel_type === channel_types.TEXT ? (
+        {channel.type === channel_types.TEXT ? (
           <span className="text-gray-400">#</span>
         ) : (
           <Mic size={15} className="text-gray-400" />
         )}
-        {channel_name}
+        {channel.name}
       </button>
 
       {/* {Icon Settings} */}
@@ -137,9 +121,7 @@ export default function ChannelSidebar({
         {channels.map((channel) => (
           <li key={channel.id}>
             <Channel_
-              channel_id={channel.id}
-              channel_name={channel.name}
-              channel_type={channel.type}
+              channel={channel}
               setSelectedChannel={setSelectedChannel}
               selectedChannel={selectedChannel}
             />
