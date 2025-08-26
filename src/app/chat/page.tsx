@@ -110,6 +110,7 @@ export default function ChatPage() {
     alert(`Invite created! ID: ${invite.id}`);
   }
 
+  /*Dynamically update guild list*/
   useEffect(() => {
     // Fetch guilds for the logged-in user
     const fetchGuilds = async () => {

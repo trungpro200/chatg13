@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { joinGuild } from "@/utils/guild/invite";
 type NewModalProps = {
   isOpen: boolean;
   mode: "create" | "join" | null;
@@ -37,10 +38,7 @@ const NewModal: React.FC<NewModalProps> = ({
               ? "Create a Guild"
               : "Join a Guild"}
           </DialogTitle>
-          <DialogDescription>
-            {mode === null &&
-              ""}
-          </DialogDescription>
+          <DialogDescription>{mode === null && ""}</DialogDescription>
         </DialogHeader>
 
         {!mode && (
@@ -93,21 +91,33 @@ const NewModal: React.FC<NewModalProps> = ({
               type="text"
               placeholder="Invitation Code"
               className="bg-gray-700 text-white"
+              id="invite-code-input"
             />
             <DialogFooter>
               <Button variant="secondary" onClick={() => setMode(null)}>
                 Back
               </Button>
-              <Button className="bg-green-600 hover:bg-green-700">Join</Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  joinGuild(
+                    (
+                      document.getElementById(
+                        "invite-code-input"
+                      ) as HTMLInputElement
+                    )?.value
+                  );
+                  setIsOpen(false);
+                }}
+              >
+                Join
+              </Button>
             </DialogFooter>
           </>
         )}
       </DialogContent>
     </Dialog>
-
-    
   );
 };
 
 export default NewModal;
-
