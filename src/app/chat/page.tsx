@@ -29,7 +29,7 @@ export default function ChatPage() {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaveTarget, setLeaveTarget] = useState<Guild | null>(null);
 
-  const [contextMenu, setContextMenu] = useState<{
+  const [guildContextMenu, setGuildContextMenu] = useState<{
     visible: boolean;
     x: number;
     y: number;
@@ -37,7 +37,7 @@ export default function ChatPage() {
   }>({ visible: false, x: 0, y: 0, guild: null });
 
   const handleRightClickGuild = (e: React.MouseEvent, guild: Guild) => {
-    setContextMenu({
+    setGuildContextMenu({
       visible: true,
       x: e.clientX,
       y: e.clientY,
@@ -184,20 +184,20 @@ export default function ChatPage() {
         }}
       />
 
-      {contextMenu.visible && (
+      {guildContextMenu.visible && (
         <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          guild={contextMenu.guild}
-          onClose={() => setContextMenu({ ...contextMenu, visible: false })}
+          x={guildContextMenu.x}
+          y={guildContextMenu.y}
+          guild={guildContextMenu.guild}
+          onClose={() => setGuildContextMenu({ ...guildContextMenu, visible: false })}
           labels={["Rename Guild", "Leave Guild"]}
           onClicks={[
             () => {
-              setRenameTarget(contextMenu.guild);
+              setRenameTarget(guildContextMenu.guild);
               setIsRenameModalOpen(true);
             },
             () => {
-              setLeaveTarget(contextMenu.guild);
+              setLeaveTarget(guildContextMenu.guild);
               setIsLeaveModalOpen(true);
             },
           ]}
