@@ -29,9 +29,7 @@ export default function ChatPage() {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaveTarget, setLeaveTarget] = useState<Guild | null>(null);
 
-
-
-const [contextMenu, setContextMenu] = useState<{
+  const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     x: number;
     y: number;
@@ -98,7 +96,6 @@ const [contextMenu, setContextMenu] = useState<{
     router.refresh();
   };
 
-
   useEffect(() => {
     // Fetch guilds for the logged-in user
     const fetchGuilds = async () => {
@@ -108,7 +105,10 @@ const [contextMenu, setContextMenu] = useState<{
       if (!session?.user) return;
 
       // Select guilds where user is a member or owner (RLS will enforce)
-      const { data, error } = await supabase.from("guilds").select("id, name, owner_id, guild_members!inner(user_id)").eq("guild_members.user_id", session.user.id);
+      const { data, error } = await supabase
+        .from("guilds")
+        .select("id, name, owner_id, guild_members!inner(user_id)")
+        .eq("guild_members.user_id", session.user.id);
       if (error) {
         console.error("Error fetching guilds:", error);
         return;
@@ -121,14 +121,13 @@ const [contextMenu, setContextMenu] = useState<{
     fetchGuilds();
   }, [isModalOpen, selectedGuild]);
 
-useEffect(() => {
-  const handleContextMenu = (e: MouseEvent) => {
-    e.preventDefault(); // chặn context menu mặc định ở mọi nơi
-  };
-  window.addEventListener("contextmenu", handleContextMenu);
-  return () => window.removeEventListener("contextmenu", handleContextMenu);
-}, []);
-
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // chặn context menu mặc định ở mọi nơi
+    };
+    window.addEventListener("contextmenu", handleContextMenu);
+    return () => window.removeEventListener("contextmenu", handleContextMenu);
+  }, []);
 
   return (
     <main className="flex h-screen bg-gray-900 text-white">
@@ -162,10 +161,14 @@ useEffect(() => {
         onClose={() => setIsRenameModalOpen(false)}
         onRenameSuccess={(guildId, newName) => {
           setGuilds((prev) =>
-            prev.map((g) => (Number(g.id) === guildId ? { ...g, name: newName } : g))
+            prev.map((g) =>
+              Number(g.id) === guildId ? { ...g, name: newName } : g
+            )
           );
           setSelectedGuild((prev) =>
-            prev && Number(prev.id) === guildId ? { ...prev, name: newName } : prev
+            prev && Number(prev.id) === guildId
+              ? { ...prev, name: newName }
+              : prev
           );
         }}
       />
@@ -176,7 +179,8 @@ useEffect(() => {
         onClose={() => setIsLeaveModalOpen(false)}
         onLeaveSuccess={(guildId) => {
           setGuilds((prev) => prev.filter((g) => Number(g.id) !== guildId));
-          if (selectedGuild && Number(selectedGuild.id) === guildId) setSelectedGuild(null);
+          if (selectedGuild && Number(selectedGuild.id) === guildId)
+            setSelectedGuild(null);
         }}
       />
 
@@ -186,17 +190,19 @@ useEffect(() => {
           y={contextMenu.y}
           guild={contextMenu.guild}
           onClose={() => setContextMenu({ ...contextMenu, visible: false })}
-          onRename={(guild) => {
-            setRenameTarget(guild);
-            setIsRenameModalOpen(true);
-          }}
-          onLeave={(guild) => {
-            setLeaveTarget(guild);
-            setIsLeaveModalOpen(true);
-          }}
+          labels={["Rename Guild", "Leave Guild"]}
+          onClicks={[
+            () => {
+              setRenameTarget(contextMenu.guild);
+              setIsRenameModalOpen(true);
+            },
+            () => {
+              setLeaveTarget(contextMenu.guild);
+              setIsLeaveModalOpen(true);
+            },
+          ]}
         />
-        )}
-
+      )}
     </main>
   );
 }

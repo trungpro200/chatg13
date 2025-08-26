@@ -3,27 +3,42 @@
 import React, { useEffect, useRef } from "react";
 import { Guild } from "@/app/chat/page";
 
-
 type ContextMenuProps = {
   x: number;
   y: number;
   guild: Guild | null;
+  onClicks: (() => void)[];
+  labels: string[];
   onClose: () => void;
-  onRename: (guild: Guild) => void;
-  onLeave: (guild: Guild) => void;
 };
+
+type ContextMenuButtonProps = {
+  onClick: () => void;
+  children: React.ReactNode;
+};
+
+function ContextMenuButton({ onClick, children }: ContextMenuButtonProps) {
+  return (
+    <li
+      className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+      onClick={onClick}
+    >
+      {children}
+    </li>
+  );
+}
 
 export default function ContextMenu({
   x,
   y,
   guild,
   onClose,
-  onRename,
-  onLeave,
+  labels,
+  onClicks,
 }: ContextMenuProps) {
-    const menuRef = useRef<HTMLUListElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
 
-// Đóng context menu khi click ra ngoài
+  // Đóng context menu khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -42,18 +57,11 @@ export default function ContextMenu({
       className="absolute bg-gray-800 text-white shadow-lg rounded-md py-2 z-50"
       style={{ top: y, left: x }}
     >
-      <li
-        className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-        onClick={() => {onRename(guild); onClose();}}
-      >
-        Đổi tên nhóm
-      </li>
-      <li
-        className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-        onClick={() => {onLeave(guild); onClose();}}
-      >
-        Rời nhóm
-      </li>
+      {labels.map((label, index) => (
+        <ContextMenuButton key={index} onClick={onClicks[index]}>
+          {label}
+        </ContextMenuButton>
+      ))}
     </ul>
   );
 }
