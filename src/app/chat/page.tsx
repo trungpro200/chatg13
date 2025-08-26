@@ -10,12 +10,8 @@ import ChannelSidebar from "@/components/chat/ChannelSidebar";
 import ContextMenu from "@/components/ContextMenu";
 import RenameModal from "@/components/chat/RenameModal";
 import LeaveGuildModal from "@/components/chat/LeaveGuildModal";
-
-export type Guild = {
-  id: string;
-  name: string;
-  owner_id?: string;
-};
+import { getGuildInvite, createInvite } from "@/utils/guild/invite";
+import { Guild } from "@/utils/guild/types";
 
 export default function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -95,6 +91,24 @@ export default function ChatPage() {
     // Redirect to the new guild later (for now just refresh chat page)
     router.refresh();
   };
+
+  async function handleInvite(guild: Guild | null) {
+    if (!guild) return;
+
+    let invite = await getGuildInvite(guild);
+    if (invite) {
+      //Return existed invite to user
+      alert(`Invite created! ID: ${invite.id}`);
+      return;
+    }
+    invite = await createInvite(guild);
+
+    if (!invite) {
+      return;
+    }
+
+    alert(`Invite created! ID: ${invite.id}`);
+  }
 
   useEffect(() => {
     // Fetch guilds for the logged-in user
@@ -184,17 +198,24 @@ export default function ChatPage() {
         }}
       />
 
+      {/* Context menu for guild actions */}
       {guildContextMenu.visible && (
         <ContextMenu
           x={guildContextMenu.x}
           y={guildContextMenu.y}
           guild={guildContextMenu.guild}
-          onClose={() => setGuildContextMenu({ ...guildContextMenu, visible: false })}
-          labels={["Rename Guild", "Leave Guild"]}
+          onClose={() =>
+            setGuildContextMenu({ ...guildContextMenu, visible: false })
+          }
+          labels={["Rename Guild", "Invite People", "Leave Guild"]}
           onClicks={[
             () => {
               setRenameTarget(guildContextMenu.guild);
               setIsRenameModalOpen(true);
+            },
+            () => {
+              handleInvite(guildContextMenu.guild);
+              setGuildContextMenu({ ...guildContextMenu, visible: false });
             },
             () => {
               setLeaveTarget(guildContextMenu.guild);

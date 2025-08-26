@@ -1,5 +1,5 @@
 import React from "react";
-import type { Guild } from "@/app/chat/page";
+import { Guild } from "@/utils/guild/types";
 
 type Props = {
   guilds: Guild[];
