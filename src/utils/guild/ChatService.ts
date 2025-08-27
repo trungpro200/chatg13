@@ -1,11 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export type Message = {
-  id: number;
+  id: number | string;
   channel_id: number;
   user_id: string;
   content: string;
   created_at: string;
+  pinned?: boolean;
 };
 
 class ChatService {
@@ -50,13 +51,31 @@ class ChatService {
     }
     return data as Message[];
   }
+
+  // Pinned
+  async togglePinned(messageId: number, pinned: boolean) {
+    const { data, error } = await supabase
+      .from("messages")
+      .update({ pinned })
+      .eq("id", messageId)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("togglePinned error:", error);
+      throw new Error(error.message);
+    }
+    return data as Message;
+  }
+
+
   // Subscribe realtime
   subscribeMessages(
     channelId: number,
     callback: (payload: Message) => void
   ) {
     this.subscription = supabase
-      .channel("messages")
+      .channel("public:messages")
       .on(
         "postgres_changes",
         {

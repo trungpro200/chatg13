@@ -74,10 +74,24 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className="bg-gray-800 p-2 rounded text-sm text-gray-200"
+            className={`p-2 rounded text-sm ${msg.pinned ? "bg-yellow-800" : "bg-gray-800"}`}
           >
             <span className="text-gray-400 mr-2">{msg.user_id.slice(0, 6)}:</span>
             {msg.content}
+            <button
+              className="ml-2 text-xs text-blue-400 hover:underline"
+              onClick={async () => {
+                const updated = await chatService.togglePinned(
+                  Number(msg.id),
+                  !msg.pinned
+                );
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === msg.id ? updated : m))
+                );
+              }}
+            >
+              {msg.pinned ? "Unpin" : "Pin"}
+            </button>
           </div>
         ))}
       </div>
