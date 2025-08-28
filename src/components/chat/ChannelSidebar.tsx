@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings, Mic, Check } from "lucide-react";
+import { BsChatFill } from "react-icons/bs";
 import { channel_types, Channel } from "@/utils/guild/types";
 
 type ChannelProps = {
@@ -42,7 +43,9 @@ function Channel_({
         onClick={() => setSelectedChannel(channel.name)}
       >
         {channel.type === channel_types.TEXT ? (
-          <span className="text-gray-400">#</span>
+          <span className="text-gray-400">
+            <BsChatFill />
+          </span>
         ) : (
           <Mic size={15} className="text-gray-400" />
         )}
