@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 export type Message = {
   id: number | string;
   channel_id: number;
-  user_id: string;
+  author_id: string;
   content: string;
   created_at: string;
   pinned?: boolean;
@@ -23,18 +23,16 @@ class ChatService {
       .from("messages")
       .insert({
         channel_id: channelId,
-        user_id: session.user.id,
         content,
       })
       .select("*")
       .single();
 
     if (error) {
-        console.error("sendMessage error:", error);
-        throw new Error(error.message);
+      console.error("sendMessage error:", error);
+      throw new Error(error.message);
     }
     return data as Message;
-
   }
 
   // hiện tin nhắn cũ
@@ -46,9 +44,10 @@ class ChatService {
       .order("created_at", { ascending: true });
 
     if (error) {
-        console.error("fetchMessages error:", error);
-        throw new Error(error.message);
+      console.error("fetchMessages error:", error);
+      throw new Error(error.message);
     }
+    console.log("fetchMessages success:", data);
     return data as Message[];
   }
 
@@ -68,27 +67,26 @@ class ChatService {
     return data as Message;
   }
 
-
   // Subscribe realtime
-  subscribeMessages(
-    channelId: number,
-    callback: (payload: Message) => void
-  ) {
+  subscribeMessages(channelId: number, callback: (payload: Message) => void) {
     this.subscription = supabase
-      .channel("public:messages")
+      .channel(`messages-channel-${channelId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `channel_id=eq.${channelId}`,
+          // filter: `channel_id=eq.${channelId}`,
         },
         (payload) => {
+          console.log("🔔 Realtime payload:", payload);
           callback(payload.new as Message);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+      });
   }
 
   unsubscribe() {

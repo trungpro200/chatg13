@@ -46,7 +46,12 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
     load();
 
     chatService.subscribeMessages(channelId, (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      console.log("New message received via subscription:", msg);
+      setMessages((prev) => {
+        // prevent duplicates
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
 
     return () => {
@@ -60,7 +65,6 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
     const msg = await chatService.sendMessage(channelId, input);
     setMessages((prev) => [...prev, msg]);
     setInput("");
-
   };
 
   return (
@@ -74,9 +78,11 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`p-2 rounded text-sm ${msg.pinned ? "bg-yellow-800" : "bg-gray-800"}`}
+            className={`p-2 rounded text-sm ${
+              msg.pinned ? "bg-yellow-800" : "bg-gray-800"
+            }`}
           >
-            <span className="text-gray-400 mr-2">{msg.user_id.slice(0, 6)}:</span>
+            <span className="text-gray-400 mr-2">{msg.author_id}:</span>
             {msg.content}
             <button
               className="ml-2 text-xs text-blue-400 hover:underline"
