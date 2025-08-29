@@ -69,6 +69,7 @@ class ChatService {
 
   // Subscribe realtime
   subscribeMessages(channelId: number, callback: (payload: Message) => void) {
+    this.unsubscribe(); // Hủy đăng ký trước nếu đã có
     this.subscription = supabase
       .channel(`messages-channel-${channelId}`)
       .on(
@@ -87,6 +88,8 @@ class ChatService {
       .subscribe((status) => {
         console.log("📡 Subscription status:", status);
       });
+
+      console.log("Subscribed to messages channel:", `messages-channel-${channelId}`);
   }
 
   unsubscribe() {

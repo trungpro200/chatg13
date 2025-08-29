@@ -63,7 +63,7 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
     e.preventDefault();
     if (!input.trim() || !channelId) return;
     const msg = await chatService.sendMessage(channelId, input);
-    setMessages((prev) => [...prev, msg]);
+    // setMessages((prev) => [...prev, msg]);
     setInput("");
   };
 
