@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { Guild } from "@/app/chat/page";
+import React, { ReactNode, useEffect, useRef } from "react";
+import { Guild } from "@/utils/guild/types";
 
 type ContextMenuProps = {
   x: number;
   y: number;
   guild: Guild | null;
   onClicks: (() => void)[];
-  labels: string[];
+  labels: (string | ReactNode) [];
   onClose: () => void;
+  maxWidth?: string;
 };
 
 type ContextMenuButtonProps = {
@@ -35,6 +36,7 @@ export default function ContextMenu({
   onClose,
   labels,
   onClicks,
+  maxWidth = "auto"
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLUListElement>(null);
 
@@ -48,14 +50,14 @@ export default function ContextMenu({
     window.addEventListener("click", handleClickOutside);
     return () => window.removeEventListener("click", handleClickOutside);
   }, [onClose]);
-
-  if (!guild) return null;
+  
+  if (!guild && labels.length === 0) return null;
 
   return (
     <ul
       ref={menuRef}
       className="absolute bg-gray-800 text-white shadow-lg rounded-md py-2 z-50"
-      style={{ top: y, left: x }}
+      style={{ top: y, left: x, maxWidth }}
     >
       {labels.map((label, index) => (
         <ContextMenuButton key={index} onClick={onClicks[index]}>

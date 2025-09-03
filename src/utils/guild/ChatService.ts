@@ -7,6 +7,7 @@ export type Message = {
   content: string;
   created_at: string;
   pinned?: boolean;
+  profiles?: { email: string | null };
 };
 
 class ChatService {
@@ -24,8 +25,9 @@ class ChatService {
       .insert({
         channel_id: channelId,
         content,
+        author_id: session.user.id,
       })
-      .select("*")
+      .select("*, profiles(email)")
       .single();
 
     if (error) {
@@ -39,7 +41,7 @@ class ChatService {
   async fetchMessages(channelId: number): Promise<Message[]> {
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
+      .select("*, profiles(email)")
       .eq("channel_id", channelId)
       .order("created_at", { ascending: true });
 
@@ -57,7 +59,7 @@ class ChatService {
       .from("messages")
       .update({ pinned })
       .eq("id", messageId)
-      .select("*")
+      .select("*, profiles(email)")
       .single();
 
     if (error) {
