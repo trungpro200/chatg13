@@ -8,9 +8,10 @@ import { FaThumbtack } from "react-icons/fa6";
 type Props = {
   selectedChannel: string | null;
   selectedGuild: Guild | null;
+  setSelectedChannel: (channel: string) => void;
 };
 
-export default function Message({ selectedChannel, selectedGuild }: Props) {
+export default function Message({ selectedChannel, selectedGuild, setSelectedChannel }: Props) {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [input, setInput] = useState("");
   const [channelId, setChannelId] = useState<number | null>(null);
@@ -30,13 +31,15 @@ export default function Message({ selectedChannel, selectedGuild }: Props) {
   const [pinMenu, setPinMenu] = useState<{
     visible: boolean;
     x: number;
-    y: number
+    y: number;
   }>({x: 0, y: 0,visible: false,});
 
-  useEffect(() => {
+  useEffect(() => { //Dynamic update on selectedGuild changes
     setMessages([]);
     setChannelId(null);
     setPinnedMsg([]);
+    setSelectedChannel("Select a channel")
+    console.log("Guild changed?")
   }, [selectedGuild]);
 
   useEffect(() => {

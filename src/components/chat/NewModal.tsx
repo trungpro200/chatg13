@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,9 +26,18 @@ const NewModal: React.FC<NewModalProps> = ({
   handleCreateGuild,
 }) => {
   const guildNameRef = useRef<HTMLInputElement>(null);
+  const [creating, setCreating] = useState<boolean>(false);
+
+  async function onCreate() {
+    if (creating) return;
+    
+    setCreating(true);
+    const name = guildNameRef.current?.value.trim() || "";
+    if (name) await handleCreateGuild(name);
+    setCreating(false);
+  }
 
   return (
-
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="bg-gray-800 text-white">
         <DialogHeader>
@@ -74,12 +83,12 @@ const NewModal: React.FC<NewModalProps> = ({
               </Button>
               <Button
                 className="bg-blue-600 hover:bg-blue-700"
+                disabled={creating}
                 onClick={() => {
-                  const name = guildNameRef.current?.value.trim() || "";
-                  if (name) handleCreateGuild(name);
+                  onCreate();
                 }}
               >
-                Create
+                {creating ? "Creating..." : "Create"}
               </Button>
             </DialogFooter>
           </>
