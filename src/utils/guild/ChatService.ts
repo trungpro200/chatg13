@@ -70,33 +70,68 @@ class ChatService {
   }
 
   // Subscribe realtime
-  subscribeMessages(channelId: number, callback: (payload: Message) => void) {
-    this.unsubscribe(); // Hủy đăng ký trước nếu đã có
-    this.subscription = supabase
-      .channel(`messages-channel-${channelId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          // filter: `channel_id=eq.${channelId}`,
-        },
-        (payload) => {
-          console.log("🔔 Realtime payload:", payload);
-          callback(payload.new as Message);
-        }
-      )
-      .subscribe((status) => {
-        console.log("📡 Subscription status:", status);
-      });
+  async subscribeMessages(
+    channelId: number,
+    callback: (payload: Message) => void
+  ) {
+    await this.unsubscribe();
 
-      console.log("Subscribed to messages channel:", `messages-channel-${channelId}`);
+    const channel = supabase.channel(`messages-channel-${channelId}`);
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `channel_id=eq.${channelId}`, // restore filter
+      },
+      (payload) => {
+        console.log("🔔 Realtime payload:", payload);
+        callback(payload.new as Message);
+      }
+    );
+
+    // wait until we get a real SUBSCRIBED status
+    await new Promise<void>((resolve, reject) => {
+      channel.subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+        if (status === "SUBSCRIBED") return resolve();
+        if (status === "CHANNEL_ERROR" || status === "CLOSED") {
+          return reject(new Error(`Channel status: ${status}`));
+        }
+      });
+      // optional: add a timeout to reject if SUBSCRIBED never arrives
+      setTimeout(() => reject(new Error("subscribe timeout")), 8000);
+    });
+
+    // keep a reference so unsubscribe() can remove it
+    this.subscription = channel;
+    console.log(
+      "✅ Subscribed to messages channel:",
+      `messages-channel-${channelId}`
+    );
+
+    // initial catch-up fetch to avoid missing anything that happened in the race window
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("channel_id", channelId)
+      .order("created_at", { ascending: true }) // or false, depending on your UI needs
+      .limit(50);
+
+    if (!error && data) {
+      // merge/apply these into UI/state as initial dataset
+      data.forEach((msg) => callback(msg));
+    } else if (error) {
+      console.warn("Initial messages fetch failed:", error);
+    }
   }
 
-  unsubscribe() {
+  async unsubscribe() {
     if (this.subscription) {
-      supabase.removeChannel(this.subscription);
+      // removeChannel returns a promise — await it to avoid races
+      await supabase.removeChannel(this.subscription);
       this.subscription = null;
     }
   }

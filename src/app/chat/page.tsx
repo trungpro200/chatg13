@@ -167,6 +167,7 @@ export default function ChatPage() {
       <Message
         selectedChannel={selectedChannel}
         selectedGuild={selectedGuild}
+        setSelectedChannel={setSelectedChannel}
       />
 
       {/* New guild Modal */}
