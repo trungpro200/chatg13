@@ -71,6 +71,7 @@ export default function ChannelSidebar({
   const [channelType, setchannelType] = useState<channel_types>(
     channel_types.TEXT
   );
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -96,6 +97,8 @@ export default function ChannelSidebar({
   const handleAddChannel = async () => {
     if (!selectedGuild || !newChannelName.trim()) return;
 
+    setIsCreatingChannel(true);
+
     const { data, error } = await supabase
       .from("channels")
       .insert([
@@ -106,6 +109,7 @@ export default function ChannelSidebar({
 
     if (error) {
       console.error("Error adding channel:", error);
+      setIsCreatingChannel(false);
       return;
     }
 
@@ -113,8 +117,10 @@ export default function ChannelSidebar({
     setNewChannelName("");
     setchannelType(channel_types.TEXT);
     setOpen(false); // Đóng modal sau khi thêm channel
-    console.log("Channel created:", data);
     setSelectedChannel(data.name); // Chọn channel mới tạo
+
+    setIsCreatingChannel(false);
+    console.log("Channel created:", data);
   };
 
   return (
@@ -191,14 +197,16 @@ export default function ChannelSidebar({
               variant="secondary"
               onClick={() => setOpen(false)}
               className="bg-gray-600 hover:bg-gray-500"
+              disabled={isCreatingChannel}
             >
               Cancel
             </Button>
             <Button
               onClick={handleAddChannel}
               className="bg-green-600 hover:bg-green-700"
+              disabled={isCreatingChannel}
             >
-              Create
+              {isCreatingChannel ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
