@@ -16,6 +16,7 @@ type NewModalProps = {
   setIsOpen: (open: boolean) => void;
   setMode: (mode: "create" | "join" | null) => void;
   handleCreateGuild: (guildName: string) => void;
+  isCreating: boolean;
 };
 
 const NewModal: React.FC<NewModalProps> = ({
@@ -24,6 +25,7 @@ const NewModal: React.FC<NewModalProps> = ({
   setIsOpen,
   setMode,
   handleCreateGuild,
+  isCreating,
 }) => {
   const guildNameRef = useRef<HTMLInputElement>(null);
 

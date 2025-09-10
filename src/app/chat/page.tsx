@@ -27,6 +27,7 @@ export default function ChatPage() {
   const [leaveTarget, setLeaveTarget] = useState<Guild | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const [guildContextMenu, setGuildContextMenu] = useState<{
     visible: boolean;
@@ -45,6 +46,8 @@ export default function ChatPage() {
   };
 
   const handleCreateGuild = async (guildName: string) => {
+    setIsCreating(true);
+
     const {
       data: { session },
       error: sessionError,
@@ -52,6 +55,7 @@ export default function ChatPage() {
 
     if (sessionError || !session?.user) {
       alert("You must be logged in to create a guild.");
+      setIsCreating(false);
       return;
     }
 
@@ -70,6 +74,7 @@ export default function ChatPage() {
     if (guildError) {
       console.error("Guild insert error:", guildError); // <-- Add this line
       alert("Error creating guild: " + guildError.message);
+      setIsCreating(false);
       return;
     }
 
@@ -83,6 +88,7 @@ export default function ChatPage() {
       alert(
         "Guild created, but failed to add you as member: " + memberError.message
       );
+      setIsCreating(false);
       return;
     }
 
@@ -90,6 +96,7 @@ export default function ChatPage() {
     alert(`Guild "${guild.name}" created!`);
     setIsModalOpen(false);
     setMode(null);
+    setIsCreating(false);
 
     // Redirect to the new guild later (for now just refresh chat page)
     router.refresh();
@@ -169,6 +176,7 @@ export default function ChatPage() {
         setIsOpen={setIsModalOpen}
         setMode={setMode}
         handleCreateGuild={handleCreateGuild}
+        isCreating={isCreating}
       />
 
       <RenameModal
