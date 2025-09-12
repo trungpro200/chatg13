@@ -72,33 +72,61 @@ class ChatService {
     channelId: number,
     callback: (payload: Message) => void
   ) {
-    // do not manage a shared subscription here — return the created channel so callers control lifecycle
+    const maxAttempts = 3;
+    const baseDelay = 200; // ms
 
-    const channel = supabase.channel(`messages:${channelId}`).on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "messages",
-        filter: `channel_id=eq.${channelId}`,
-      },
-      (payload) => callback(payload.new as Message)
-    );
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const channel = supabase.channel(`messages:${channelId}`).on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `channel_id=eq.${channelId}`,
+        },
+        (payload) => callback(payload.new as Message)
+      );
 
-    try {
-      const status = await channel.subscribe();
-      console.log("Subscription status:", status);
-      return channel;
-    } catch (err) {
-      console.error("subscribeMessages error:", err);
-      // cleanup on error
+      try {
+        const status = await channel.subscribe();
+        console.log(`subscribe attempt ${attempt} status:`, status);
+
+        // wait short time for internal state to become SUBSCRIBED
+        const waitForSubscribed = async (timeout = 3000) => {
+          const start = Date.now();
+          // @ts-ignore - checking internal state provided by realtime-js
+          while (Date.now() - start < timeout) {
+            // @ts-ignore
+            if ((channel as any).state === "SUBSCRIBED") return true;
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          return false;
+        };
+
+        const confirmed = await waitForSubscribed(3000);
+        if (confirmed) {
+          console.log("subscribe confirmed");
+          return channel;
+        }
+
+        console.warn(`subscribe not confirmed on attempt ${attempt}`);
+      } catch (err) {
+        console.error(`subscribe attempt ${attempt} failed:`, err);
+      }
+
+      // cleanup failed channel and retry
       try {
         await supabase.removeChannel(channel);
       } catch (e) {
-        console.warn("failed cleaning up channel after subscribe error", e);
+        console.warn("failed to remove channel after failed subscribe", e);
       }
-      throw err;
+
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, baseDelay * attempt));
+      }
     }
+
+    throw new Error("Failed to subscribe after multiple attempts");
   }
 }
 
