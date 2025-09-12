@@ -81,16 +81,6 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   useEffect(() => {
     if (!channelId) return;
 
-    const load = async () => {
-      const msgs = await chatService.fetchMessages(channelId);
-      setMessages(msgs);
-      msgs.forEach((m) => fetchUserProfile(m.author_id));
-      const pinned = msgs.filter((m) => m.pinned);
-      setPinnedMsg(pinned);
-      scrollToBottom();
-    };
-    load();
-
     chatService.subscribeMessages(channelId, (msg) => {
       console.log("New message received via subscription:", msg);
       fetchUserProfile(msg.author_id);

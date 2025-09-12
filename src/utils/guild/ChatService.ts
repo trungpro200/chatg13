@@ -76,41 +76,19 @@ class ChatService {
   ) {
     await this.unsubscribe();
 
-    const channel = supabase.channel(`messages-channel-${channelId}`);
-
-    channel.on(
+    const channel = supabase.channel(`messages:${channelId}`).on(
       "postgres_changes",
       {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "messages",
-        filter: `channel_id=eq.${channelId}`, // restore filter
+        filter: `channel_id=eq.${channelId}`,
       },
-      (payload) => {
-        console.log("🔔 Realtime payload:", payload);
-        callback(payload.new as Message);
-      }
+      (payload) => callback(payload.new as Message)
     );
 
-    // wait until we get a real SUBSCRIBED status
-    await new Promise<void>((resolve, reject) => {
-      channel.subscribe((status) => {
-        console.log("📡 Subscription status:", status);
-        if (status === "SUBSCRIBED") return resolve();
-        if (status === "CHANNEL_ERROR" || status === "CLOSED") {
-          return reject(new Error(`Channel status: ${status}`));
-        }
-      });
-      // optional: add a timeout to reject if SUBSCRIBED never arrives
-      setTimeout(() => reject(new Error("subscribe timeout")), 8000);
-    });
-
-    // keep a reference so unsubscribe() can remove it
-    this.subscription = channel;
-    console.log(
-      "✅ Subscribed to messages channel:",
-      `messages-channel-${channelId}`
-    );
+    const status = await channel.subscribe();
+    console.log("Subscription status:", status);
 
     // initial catch-up fetch to avoid missing anything that happened in the race window
     const { data, error } = await supabase
