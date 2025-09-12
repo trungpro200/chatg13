@@ -11,8 +11,6 @@ export type Message = {
 };
 
 class ChatService {
-  private subscription: ReturnType<typeof supabase.channel> | null = null;
-
   // Gửi tin nhắn
   async sendMessage(channelId: number, content: string) {
     const {
@@ -74,7 +72,7 @@ class ChatService {
     channelId: number,
     callback: (payload: Message) => void
   ) {
-    await this.unsubscribe();
+    // do not manage a shared subscription here — return the created channel so callers control lifecycle
 
     const channel = supabase.channel(`messages:${channelId}`).on(
       "postgres_changes",
@@ -87,30 +85,19 @@ class ChatService {
       (payload) => callback(payload.new as Message)
     );
 
-    const status = await channel.subscribe();
-    console.log("Subscription status:", status);
-
-    // initial catch-up fetch to avoid missing anything that happened in the race window
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("channel_id", channelId)
-      .order("created_at", { ascending: true }) // or false, depending on your UI needs
-      .limit(50);
-
-    if (!error && data) {
-      // merge/apply these into UI/state as initial dataset
-      data.forEach((msg) => callback(msg));
-    } else if (error) {
-      console.warn("Initial messages fetch failed:", error);
-    }
-  }
-
-  async unsubscribe() {
-    if (this.subscription) {
-      // removeChannel returns a promise — await it to avoid races
-      await supabase.removeChannel(this.subscription);
-      this.subscription = null;
+    try {
+      const status = await channel.subscribe();
+      console.log("Subscription status:", status);
+      return channel;
+    } catch (err) {
+      console.error("subscribeMessages error:", err);
+      // cleanup on error
+      try {
+        await supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn("failed cleaning up channel after subscribe error", e);
+      }
+      throw err;
     }
   }
 }
