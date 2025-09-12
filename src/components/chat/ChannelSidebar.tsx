@@ -19,6 +19,7 @@ type ChannelProps = {
   channel: Channel;
   setSelectedChannel: (id: string | null) => void;
   selectedChannel: string | null;
+  disabled?: boolean;
 };
 
 type SidebarProps = {
@@ -31,16 +32,19 @@ function Channel_({
   channel,
   setSelectedChannel,
   selectedChannel,
+  disabled,
 }: ChannelProps) {
   const isActive = selectedChannel === channel.id;
   return (
     <div
-      className={`flex items-center justify-between group px-2 py-1 rounded cursor-pointer
-    ${isActive ? "bg-gray-600 text-white" : "hover:bg-gray-700 text-gray-300"}`}
+      className={`flex items-center justify-between group px-2 py-1 rounded ${disabled ? "opacity-50 cursor-not-allowed": "cursor-pointer"}
+    ${isActive && !disabled ? "bg-gray-600 text-white" : "hover:bg-gray-700 text-gray-300"}`}
     >
       <button
-        className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300"
-        onClick={() => setSelectedChannel(channel.name)}
+        disabled = {disabled}
+        className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300
+        disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        onClick={() => !disabled && setSelectedChannel(channel.name)}
       >
         {channel.type === channel_types.TEXT ? (
           <span className="text-gray-400">
@@ -53,7 +57,9 @@ function Channel_({
       </button>
 
       {/* {Icon Settings} */}
-      <button className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white">
+      <button 
+        disabled = {disabled}
+        className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white disabled:opacity-0">
         <Settings size={15} />
       </button>
     </div>
@@ -72,6 +78,7 @@ export default function ChannelSidebar({
     channel_types.TEXT
   );
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -79,6 +86,7 @@ export default function ChannelSidebar({
         setChannels([]);
         return;
       }
+      setIsLoading(true);
       const { data, error } = await supabase
         .from("channels")
         .select("*")
@@ -89,7 +97,10 @@ export default function ChannelSidebar({
         setChannels([]);
         return;
       }
-      setChannels(data || []);
+      else {
+        setChannels(data || []);
+      }
+      setIsLoading(false);
     };
 
     fetchChannels();
@@ -133,6 +144,7 @@ export default function ChannelSidebar({
               channel={channel}
               setSelectedChannel={setSelectedChannel}
               selectedChannel={selectedChannel}
+              disabled={isLoading}
             />
           </li>
         ))}
@@ -146,6 +158,7 @@ export default function ChannelSidebar({
           <Button
             onClick={() => setOpen(true)}
             className="w-full bg-green-600 hover:bg-green-700 text-white"
+            disabled={isLoading}
           >
             + Add Channel
           </Button>
