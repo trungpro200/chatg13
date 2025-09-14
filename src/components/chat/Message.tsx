@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { chatService, Message as MessageType } from "@/utils/guild/ChatService";
 import { Guild } from "@/utils/guild/types";
 import { supabase } from "@/lib/supabaseClient";
@@ -36,14 +36,15 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     visible: boolean;
     x: number;
     y: number;
-  }>({x: 0, y: 0,visible: false,});
+  }>({ x: 0, y: 0, visible: false });
 
-  useEffect(() => { //Dynamic update on selectedGuild changes
+  useEffect(() => {
+    //Dynamic update on selectedGuild changes
     setMessages([]);
     setChannelId(null);
     setPinnedMsg([]);
-    setSelectedChannel("Select a channel")
-    console.log("Guild changed?")
+    setSelectedChannel("Select a channel");
+    console.log("Guild changed?");
   }, [selectedGuild]);
 
   useEffect(() => {
@@ -85,32 +86,54 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   useEffect(() => {
     if (!channelId) return;
 
-    const load = async () => {
-      const msgs = await chatService.fetchMessages(channelId);
-      setMessages(msgs);
-      msgs.forEach((m) => fetchUserProfile(m.author_id));
-      const pinned = msgs.filter((m) => m.pinned);
-      setPinnedMsg(pinned);
-      scrollToBottom();
-    };
-    load();
+    let cancelled = false;
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
 
-    chatService.subscribeMessages(channelId, (msg) => {
-      console.log("New message received via subscription:", msg);
-      fetchUserProfile(msg.author_id);
-      setMessages((prev) => {
-        // prevent duplicates
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-      if (msg.pinned) {
-        setPinnedMsg((prev = []) => [...prev, msg]);
+    // Fetch initial messages before subscribing
+    (async () => {
+      try {
+        const initialMessages = await chatService.fetchMessages(channelId);
+        if (cancelled) return;
+        setMessages(initialMessages);
+        setPinnedMsg(initialMessages.filter((msg) => msg.pinned));
+        initialMessages.forEach((msg) => fetchUserProfile(msg.author_id));
+        scrollToBottom();
+
+        // Now subscribe to realtime updates (await to ensure subscription is active)
+        channelRef = await chatService.subscribeMessages(channelId, (msg) => {
+          if (cancelled) return;
+          // Only handle new/changed messages
+          setMessages((prev) => {
+            // prevent duplicates; if exists replace (update), otherwise append
+            if (prev.some((m) => m.id === msg.id))
+              return prev.map((m) => (m.id === msg.id ? msg : m));
+            return [...prev, msg];
+          });
+
+          setPinnedMsg((prev = []) => {
+            if (msg.pinned) {
+              if (prev.some((m) => m.id === msg.id))
+                return prev.map((m) => (m.id === msg.id ? msg : m));
+              return [...prev, msg];
+            }
+            return prev.filter((m) => m.id !== msg.id);
+          });
+
+          fetchUserProfile(msg.author_id);
+          scrollToBottom();
+        });
+      } catch (err) {
+        console.warn("subscribe setup failed:", err);
       }
-      scrollToBottom();
-    });
+    })();
 
     return () => {
-      chatService.unsubscribe();
+      cancelled = true;
+      if (channelRef) {
+        supabase
+          .removeChannel(channelRef)
+          .catch((e) => console.warn("failed to remove channel on cleanup", e));
+      }
     };
   }, [channelId]);
 
@@ -227,9 +250,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           }}
         >
           <FaThumbtack />
-          <span>
-            {pinnedMsg.length} pinned messages
-          </span>
+          <span>{pinnedMsg.length} pinned messages</span>
         </div>
       )}
 
@@ -345,13 +366,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           guild={selectedGuild}
           labels={pinnedMsg.map((m) => (
             <span key={m.id} className="block truncate">
-              <strong>{usernames[m.author_id] || m.author_id}</strong>: {m.content}
+              <strong>{usernames[m.author_id] || m.author_id}</strong>:{" "}
+              {m.content}
             </span>
           ))}
           onClose={() => setPinMenu({ ...pinMenu, visible: false })}
-          onClicks={pinnedMsg.map((m) =>
-            () => scrollToMessage(m.id)
-          )}
+          onClicks={pinnedMsg.map((m) => () => scrollToMessage(m.id))}
           maxWidth="300px"
         />
       )}

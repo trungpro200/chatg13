@@ -11,8 +11,6 @@ export type Message = {
 };
 
 class ChatService {
-  private subscription: ReturnType<typeof supabase.channel> | null = null;
-
   // Gửi tin nhắn
   async sendMessage(channelId: number, content: string) {
     const {
@@ -74,66 +72,61 @@ class ChatService {
     channelId: number,
     callback: (payload: Message) => void
   ) {
-    await this.unsubscribe();
+    const maxAttempts = 3;
+    const baseDelay = 200; // ms
 
-    const channel = supabase.channel(`messages-channel-${channelId}`);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const channel = supabase.channel(`messages:${channelId}`).on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `channel_id=eq.${channelId}`,
+        },
+        (payload) => callback(payload.new as Message)
+      );
 
-    channel.on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `channel_id=eq.${channelId}`, // restore filter
-      },
-      (payload) => {
-        console.log("🔔 Realtime payload:", payload);
-        callback(payload.new as Message);
-      }
-    );
+      try {
+        const status = await channel.subscribe();
+        console.log(`subscribe attempt ${attempt} status:`, status);
 
-    // wait until we get a real SUBSCRIBED status
-    await new Promise<void>((resolve, reject) => {
-      channel.subscribe((status) => {
-        console.log("📡 Subscription status:", status);
-        if (status === "SUBSCRIBED") return resolve();
-        if (status === "CHANNEL_ERROR" || status === "CLOSED") {
-          return reject(new Error(`Channel status: ${status}`));
+        // wait short time for internal state to become SUBSCRIBED
+        const waitForSubscribed = async (timeout = 3000) => {
+          const start = Date.now();
+          // @ts-ignore - checking internal state provided by realtime-js
+          while (Date.now() - start < timeout) {
+            // @ts-ignore
+            if ((channel as any).state === "SUBSCRIBED") return true;
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          return false;
+        };
+
+        const confirmed = await waitForSubscribed(3000);
+        if (confirmed) {
+          console.log("subscribe confirmed");
+          return channel;
         }
-      });
-      // optional: add a timeout to reject if SUBSCRIBED never arrives
-      setTimeout(() => reject(new Error("subscribe timeout")), 8000);
-    });
 
-    // keep a reference so unsubscribe() can remove it
-    this.subscription = channel;
-    console.log(
-      "✅ Subscribed to messages channel:",
-      `messages-channel-${channelId}`
-    );
+        console.warn(`subscribe not confirmed on attempt ${attempt}`);
+      } catch (err) {
+        console.error(`subscribe attempt ${attempt} failed:`, err);
+      }
 
-    // initial catch-up fetch to avoid missing anything that happened in the race window
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("channel_id", channelId)
-      .order("created_at", { ascending: true }) // or false, depending on your UI needs
-      .limit(50);
+      // cleanup failed channel and retry
+      try {
+        await supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn("failed to remove channel after failed subscribe", e);
+      }
 
-    if (!error && data) {
-      // merge/apply these into UI/state as initial dataset
-      data.forEach((msg) => callback(msg));
-    } else if (error) {
-      console.warn("Initial messages fetch failed:", error);
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, baseDelay * attempt));
+      }
     }
-  }
 
-  async unsubscribe() {
-    if (this.subscription) {
-      // removeChannel returns a promise — await it to avoid races
-      await supabase.removeChannel(this.subscription);
-      this.subscription = null;
-    }
+    throw new Error("Failed to subscribe after multiple attempts");
   }
 }
 
