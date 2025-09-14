@@ -135,7 +135,7 @@ export default function ChannelSidebar({
   };
 
   return (
-    <aside className="w-64 bg-gray-800 p-4 overflow-y-scroll">
+    <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
       <ul>
         {channels.map((channel) => (

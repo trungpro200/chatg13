@@ -9,14 +9,18 @@ type Props = {
   selectedChannel: string | null;
   selectedGuild: Guild | null;
   setSelectedChannel: (channel: string) => void;
+  showMembers: boolean;
+  setShowMembers: (v: boolean) => void;
 };
 
-export default function Message({ selectedChannel, selectedGuild, setSelectedChannel }: Props) {
+export default function Message({ selectedChannel, selectedGuild, setSelectedChannel, showMembers, setShowMembers }: Props) {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [input, setInput] = useState("");
   const [channelId, setChannelId] = useState<number | null>(null);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [pendingMessages, setPendingMessages] = useState<MessageType[]>([]);
   const [pinnedMsg, setPinnedMsg] = useState<MessageType[]>([]);
+  const [pinLoading, setPinLoading] = useState<string | number | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const msgRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -117,24 +121,54 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !channelId) return;
-    await chatService.sendMessage(channelId, input);
-    // setMessages((prev) => [...prev, msg]);
+
+    const tempId = `temp-${Date.now()}`;
+    const newMsg: MessageType = {
+      id: tempId,
+      content: input,
+      author_id: "me", // TODO: thay bằng user id thực tế
+      channel_id: channelId,
+      pinned: false,
+      created_at: new Date().toISOString(),
+    }
+
+    setPendingMessages((prev) => [...prev, newMsg]);
+    // clear input + reset textarea
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px";
     }
     scrollToBottom();
+    try {
+      await chatService.sendMessage(channelId, input);
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+    }
+    catch (err) {
+       console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
+    }
   };
+
+  useEffect(() => {
+    if (pendingMessages.length > 0) {
+      scrollToBottom();
+    }
+  }, [pendingMessages]);
 
   const handleMenuClick = async (label: string, msg: MessageType) => {
     if (label === "Pin" || label === "Unpin") {
-      const updated = await chatService.togglePinned(Number(msg.id), !msg.pinned);
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? updated : m))
-      );
-      setPinnedMsg((prev) =>
-        updated.pinned ? [...(prev ?? []), updated] : (prev ?? []).filter((m) => m.id !== msg.id)
-      );
+      setPinLoading(msg.id);
+      try {
+          const updated = await chatService.togglePinned(Number(msg.id), !msg.pinned);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msg.id ? updated : m))
+        );
+        setPinnedMsg((prev) =>
+          updated.pinned ? [...(prev ?? []), updated] : (prev ?? []).filter((m) => m.id !== msg.id)
+        );
+      }
+      finally {
+        setPinLoading(null);
+      }
     }
     setMenu({ x: 0, y: 0, message: null }); // đóng menu
   };
@@ -147,6 +181,14 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     }
   };
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+    }
+  }, [input]);
+
+
   const scrollToMessage = (msgId: string | number) => {
     const el = msgRefs.current[msgId];
     if (el) {
@@ -158,10 +200,22 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
   return (
     <section className="flex-1 flex flex-col">
-      <header className="h-12 bg-gray-800 px-4 flex items-center border-b border-gray-700">
+      <header className="h-12 bg-gray-800 px-4 flex items-center justify-between border-b border-gray-700">
         <h3 className="font-semibold">
           {selectedChannel ? `# ${selectedChannel}` : "Select a channel"}
         </h3>
+
+        <button
+          onClick={() => setShowMembers(!showMembers)}
+          className="p-2 rounded hover:bg-gray-700"
+          title={showMembers ? "Hide Members" : "Show Members"}
+        >
+          {showMembers ? (
+            <img src="https://img.icons8.com/?size=100&id=4r3xdsxcmOTJ&format=png&color=000000" alt="Hide Members" className="w-7 h-7" />
+          ) : (
+            <img src="https://img.icons8.com/?size=100&id=YzsadpdsoN8e&format=png&color=000000" alt="Show Members" className="w-7 h-7" />
+          )}
+        </button>
       </header>
 
       {pinnedMsg.length > 0 && (
@@ -180,7 +234,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.map((msg) => (
+        {[...messages, ...pendingMessages].map((msg) => (
             <div
               key={msg.id}
               ref={(el) => {
@@ -190,8 +244,11 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
             >
               <div
                 className={`relative p-3 rounded-md shadow-lg inline-block break-all whitespace-pre-wrap max-w-[70%] ${
-                  msg.pinned ? "bg-yellow-800" : "bg-gray-800"
+                  msg.pinned ? "bg-yellow-800" : msg.id.toString().startsWith("temp-") ? "bg-gray-700 opacity-70" : "bg-gray-800"
                 }`}
+                onContextMenu={(e) => {
+                setMenu({ x: e.clientX, y: e.clientY, message: msg });
+              }}
               >
                 <div className="flex items-start gap-2">
                   <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-600 text-white">
@@ -203,19 +260,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                       <span className="font-semibold text-sm text-gray-300">
                         {usernames[msg.author_id] || msg.author_id}
                       </span>
-                      <button
-                        className="px-2 text-gray-400 hover:text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenu({ x: e.clientX, y: e.clientY, message: msg });
-                        }}
-                      >
-                        ...
-                      </button>
                     </div>
-                    <p className="text-gray-200 text-sm">
-                      {msg.content}
-                    </p>
+                    <p className="text-gray-200 text-sm">{msg.content}</p>
+
+                    {msg.id.toString().startsWith("temp-") && (
+                      <span className="text-xs text-gray-400 italic">Tin nhắn đang gửi...</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -233,6 +283,29 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
               placeholder="Message..."
               value={input}
               onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (e.shiftKey) { // Xuống dòng
+                    e.preventDefault();
+                    
+                    if (textareaRef.current) {
+                        const { selectionStart, selectionEnd } = e.currentTarget;
+                      const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
+                      setInput(newValue);
+
+                      // di chuyển con trỏ đúng chỗ
+                      requestAnimationFrame(() => {
+                        if (textareaRef.current)
+                          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = selectionStart + 1;
+                      });
+                    }
+                  }
+                  else {
+                    // Gửi tin nhắn
+                    handleSend(e as unknown as React.FormEvent);
+                  }
+                }
+              }}  
               className="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none resize-none overflow-hidden"
             />
             <button
@@ -251,13 +324,15 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           y={menu.y}
           guild={selectedGuild}
           labels={[
-            <>
+            <span key="pin" className={`flex items-center ${pinLoading === menu.message.id ? "opacity-50 cursor-not-allowed" : ""}`}>
               <FaThumbtack className="inline mr-2" />
               {menu.message.pinned ? "Unpin" : "Pin"}
-            </>,
+            </span>
           ]}
           onClicks={[
-            () => handleMenuClick(menu.message!.pinned ? "Unpin" : "Pin", menu.message!)
+            pinLoading === menu.message?.id
+              ? () => {} // không làm gì khi đang loading
+              : () => handleMenuClick(menu.message!.pinned ? "Unpin" : "Pin", menu.message!)
           ]}
           onClose={() => setMenu({ x: 0, y: 0, message: null })}
         />

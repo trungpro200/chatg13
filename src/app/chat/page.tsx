@@ -13,6 +13,7 @@ import LeaveGuildModal from "@/components/chat/LeaveGuildModal";
 import { getGuildInvite, createInvite } from "@/utils/guild/invite";
 import { Guild } from "@/utils/guild/types";
 import InviteCodeModal from "@/components/chat/InviteModal";
+import MemberGuildList from "@/components/chat/MemberGuildList";
 
 export default function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -28,6 +29,7 @@ export default function ChatPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
 
   const [guildContextMenu, setGuildContextMenu] = useState<{
     visible: boolean;
@@ -151,7 +153,7 @@ export default function ChatPage() {
   }, []);
 
   return (
-    <main className="flex h-screen bg-gray-900 text-white">
+    <main className="flex h-screen items-stretch bg-gray-900 text-white overflow-hidden">
       <ServerSidebar
         guilds={guilds}
         selectedGuild={selectedGuild}
@@ -159,16 +161,29 @@ export default function ChatPage() {
         setIsModalOpen={setIsModalOpen}
         onRightClickGuild={handleRightClickGuild}
       />
-      <ChannelSidebar
-        selectedGuild={selectedGuild}
-        selectedChannel={selectedChannel}
-        setSelectedChannel={setSelectedChannel}
-      />
-      <Message
-        selectedChannel={selectedChannel}
-        selectedGuild={selectedGuild}
-        setSelectedChannel={setSelectedChannel}
-      />
+      <div className="w-[20%]">
+        <ChannelSidebar
+          selectedGuild={selectedGuild}
+          selectedChannel={selectedChannel}
+          setSelectedChannel={setSelectedChannel}
+        />
+      </div>
+      <div className={showMembers ? "w-[60%] h-full flex" : "w-[80%] h-full flex"}>
+        <Message
+          selectedChannel={selectedChannel}
+          selectedGuild={selectedGuild}
+          setSelectedChannel={setSelectedChannel}
+          showMembers={showMembers}
+          setShowMembers={setShowMembers}
+        />
+      </div>
+      {showMembers && (
+        <div className="w-[20%]">
+          <MemberGuildList
+            selectedGuild={selectedGuild}
+          />
+        </div>
+      )}
 
       {/* New guild Modal */}
       <NewModal
