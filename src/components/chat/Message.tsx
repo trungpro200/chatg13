@@ -147,7 +147,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
     const tempId = `temp-${Date.now()}`;
     const newMsg: MessageType = {
-      id: tempId,
+      id: tempId, // luôn khác id thực từ DB
       content: input,
       author_id: "me", // TODO: thay bằng user id thực tế
       channel_id: channelId,
@@ -156,18 +156,35 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     }
 
     setPendingMessages((prev) => [...prev, newMsg]);
+
     // clear input + reset textarea
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px";
     }
     scrollToBottom();
+
     try {
-      await chatService.sendMessage(channelId, input);
+      const savedMsg = await chatService.sendMessage(channelId, input);
+
+      // Bỏ pending
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+
+      // fallback: sau 1s nếu subscription chưa add message thì tự thêm
+      setTimeout(() => {
+        setMessages((prev) => {
+          const alreadyExists = prev.some((m) => m.id === savedMsg.id);
+          if (!alreadyExists) {
+            return [...prev, savedMsg];
+          }
+          return prev;
+        });
+      }, 1000)
+      // setMessages((prev) => [...prev, savedMsg]);
     }
     catch (err) {
-       console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
+      console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId)); // nếu fail thì bỏ pending
     }
   };
 
