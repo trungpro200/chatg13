@@ -251,9 +251,9 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           title={showMembers ? "Hide Members" : "Show Members"}
         >
           {showMembers ? (
-            <img src="https://img.icons8.com/?size=100&id=4r3xdsxcmOTJ&format=png&color=000000" alt="Hide Members" className="w-7 h-7" />
+            <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=1A1A1A" alt="Hide Members" className="w-6 h-6" />
           ) : (
-            <img src="https://img.icons8.com/?size=100&id=YzsadpdsoN8e&format=png&color=000000" alt="Show Members" className="w-7 h-7" />
+            <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=FFFFFF" alt="Show Members" className="w-6 h-6" />
           )}
         </button>
       </header>
@@ -325,9 +325,8 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
                 // Bật scroll khi nội dung > chiều cao
                 if (textareaRef.current) {
-                  textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > textareaRef.current.clientHeight
-                  ? "auto"
-                  : "hidden";
+                  textareaRef.current.style.overflowY =
+                    textareaRef.current.scrollHeight > textareaRef.current.clientHeight + 2 ? "auto" : "hidden";
                 }
             }}
               onKeyDown={(e) => {
@@ -337,8 +336,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                     
                     if (textareaRef.current) {
                         const { selectionStart, selectionEnd } = e.currentTarget;
-                      const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
-                      setInput(newValue);
+
+                        // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
+                        if (input.trim().length > 0) {
+                          const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
+                          setInput(newValue);
+                        }
 
                       // di chuyển con trỏ đúng chỗ
                       requestAnimationFrame(() => {
@@ -357,13 +360,14 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                   }
                 }
               }}  
-              className="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
+              className="w-full p-2 rounded bg-gray-900 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+              //className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+              className="px-4 py-2 bg-gray-900 hover:bg-gray-600 rounded"
             >
-              Send
+              <img src="https://img.icons8.com/?size=100&id=uryN07UGUVNh&format=png&color=000000" alt="Send" className="w-5 h-6" />
             </button>
           </form>
         </footer>

@@ -27,6 +27,8 @@ export default function MemberGuildList({ selectedGuild }: Props) {
       }
 
       setLoading(true);
+      console.log(process.env.NEXT_PUBLIC_BASE_URL)
+      console.log((await await fetch(`/api/getmembers/${36}`)).json())
 
       // Lấy Guild để biết owner_id
       const { data: guildData, error: gError} = await supabase
