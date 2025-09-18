@@ -44,7 +44,7 @@ function Channel_({
         disabled = {disabled}
         className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300
         disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        onClick={() => !disabled && onSelectedChannel(channel.name)} // dùng id thay vì name vì sau khi sử dụng không bị trùng lặp.
+        onClick={() => !disabled && onSelectedChannel(channel.name)} 
       >
         {channel.type === channel_types.TEXT ? (
           <span className="text-gray-400">
