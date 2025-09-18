@@ -17,7 +17,7 @@ import { channel_types, Channel } from "@/utils/guild/types";
 
 type ChannelProps = {
   channel: Channel;
-  setSelectedChannel: (id: string | null) => void;
+  onSelectedChannel: (id: string ) => void;
   selectedChannel: string | null;
   disabled?: boolean;
 };
@@ -30,11 +30,11 @@ type SidebarProps = {
 
 function Channel_({
   channel,
-  setSelectedChannel,
+  onSelectedChannel,
   selectedChannel,
   disabled,
 }: ChannelProps) {
-  const isActive = selectedChannel === channel.id;
+  const isActive = selectedChannel === channel.name;
   return (
     <div
       className={`flex items-center justify-between group px-2 py-1 rounded ${disabled ? "opacity-50 cursor-not-allowed": "cursor-pointer"}
@@ -44,7 +44,7 @@ function Channel_({
         disabled = {disabled}
         className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300
         disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        onClick={() => !disabled && setSelectedChannel(channel.name)}
+        onClick={() => !disabled && onSelectedChannel(channel.name)} // dùng id thay vì name vì sau khi sử dụng không bị trùng lặp.
       >
         {channel.type === channel_types.TEXT ? (
           <span className="text-gray-400">
@@ -79,6 +79,7 @@ export default function ChannelSidebar({
   );
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitchingChannel, setIsSwitchingChannel] = useState(false); // added
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -128,11 +129,18 @@ export default function ChannelSidebar({
     setNewChannelName("");
     setchannelType(channel_types.TEXT);
     setOpen(false); // Đóng modal sau khi thêm channel
-    setSelectedChannel(data.name); // Chọn channel mới tạo
+    setSelectedChannel(data.id); // Chọn channel mới tạo
 
     setIsCreatingChannel(false);
     console.log("Channel created:", data);
   };
+
+  const handleSelectChannel = (channelId: string) => {
+    if (isSwitchingChannel) return; // chặn spam.
+    setIsSwitchingChannel(true); // ắt đầu quá trình chuyển kênh.
+    setSelectedChannel(channelId);
+    setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
+  }
 
   return (
     <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
@@ -142,9 +150,9 @@ export default function ChannelSidebar({
           <li key={channel.id}>
             <Channel_
               channel={channel}
-              setSelectedChannel={setSelectedChannel}
+              onSelectedChannel={handleSelectChannel}
               selectedChannel={selectedChannel}
-              disabled={isLoading}
+              disabled={isLoading || isSwitchingChannel} // disabled khi đang load hoặc đang chuyển kênh
             />
           </li>
         ))}
@@ -158,7 +166,7 @@ export default function ChannelSidebar({
           <Button
             onClick={() => setOpen(true)}
             className="w-full bg-green-600 hover:bg-green-700 text-white"
-            disabled={isLoading}
+            disabled={isLoading || isSwitchingChannel} // disable nút load
           >
             + Add Channel
           </Button>
