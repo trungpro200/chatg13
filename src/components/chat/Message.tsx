@@ -314,13 +314,22 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
       {channelId && (
         <footer className="p-4 border-t border-gray-700">
-          <form onSubmit={handleSend} className="flex gap-2">
+          <form onSubmit={handleSend} className="flex gap-2 items-end">
             <textarea
               ref={textareaRef}
               rows={1}
               placeholder="Message..."
               value={input}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+
+                // Bật scroll khi nội dung > chiều cao
+                if (textareaRef.current) {
+                  textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > textareaRef.current.clientHeight
+                  ? "auto"
+                  : "hidden";
+                }
+            }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   if (e.shiftKey) { // Xuống dòng
@@ -333,8 +342,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
                       // di chuyển con trỏ đúng chỗ
                       requestAnimationFrame(() => {
-                        if (textareaRef.current)
+                        if (textareaRef.current) {
                           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = selectionStart + 1;
+
+                          // luôn scrollToBottom sau khi shift+enter
+                          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+                        }
                       });
                     }
                   }
@@ -344,7 +357,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                   }
                 }
               }}  
-              className="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none resize-none overflow-hidden"
+              className="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
             />
             <button
               type="submit"
