@@ -325,9 +325,8 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
                 // Bật scroll khi nội dung > chiều cao
                 if (textareaRef.current) {
-                  textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > textareaRef.current.clientHeight
-                  ? "auto"
-                  : "hidden";
+                  textareaRef.current.style.overflowY =
+                    textareaRef.current.scrollHeight > textareaRef.current.clientHeight + 2 ? "auto" : "hidden";
                 }
             }}
               onKeyDown={(e) => {
@@ -337,8 +336,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                     
                     if (textareaRef.current) {
                         const { selectionStart, selectionEnd } = e.currentTarget;
-                      const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
-                      setInput(newValue);
+
+                        // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
+                        if (input.trim().length > 0) {
+                          const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
+                          setInput(newValue);
+                        }
 
                       // di chuyển con trỏ đúng chỗ
                       requestAnimationFrame(() => {
