@@ -42,7 +42,7 @@ function Channel_({
     >
       <button
         disabled = {disabled}
-        className="w-full flex items-center gap-2 text-left px-2 py-1 rounded hover:bg-gray-700 text-gray-300
+        className="w-full flex items-center gap-2 text-left px-2 py-1 rounded text-gray-300
         disabled:cursor-not-allowed disabled:hover:bg-transparent"
         onClick={() => !disabled && onSelectedChannel(channel.name)} 
       >
