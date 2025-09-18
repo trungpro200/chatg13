@@ -74,7 +74,35 @@ class ChatService {
   ) {
     const maxAttempts = 3;
     const baseDelay = 200; // ms
-    await supabase.realtime.connect()
+
+    // 🔑 Ensure session (access token) is ready before subscribing
+    let { data: { session } } = await supabase.auth.getSession();
+    console.log("Initial session:", session);
+    if (!session?.access_token) {
+      console.log("No access token yet, waiting for auth state change...");
+      await new Promise<void>((resolve) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (_event, newSession) => {
+            if (newSession?.access_token) {
+              console.log("Auth ready, continuing...");
+              subscription.unsubscribe();
+              resolve();
+            }
+          }
+        );
+      });
+      // refresh session
+      ({ data: { session } } = await supabase.auth.getSession());
+    }
+
+    if (session?.access_token && !supabase.realtime.accessTokenValue) {
+      supabase.realtime.setAuth(session.access_token);
+    }
+
+    await supabase.realtime.connect();
+
+    console.log("Socket state:", supabase.realtime.connectionState());
+    console.log("Access token:", supabase.realtime.accessTokenValue);
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const channel = supabase.channel(`messages:${channelId}`).on(
@@ -129,6 +157,7 @@ class ChatService {
 
     throw new Error("Failed to subscribe after multiple attempts");
   }
+
 }
 
 export const chatService = new ChatService();
