@@ -74,6 +74,7 @@ class ChatService {
   ) {
     const maxAttempts = 3;
     const baseDelay = 200; // ms
+    await supabase.realtime.connect()
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const channel = supabase.channel(`messages:${channelId}`).on(
@@ -97,7 +98,7 @@ class ChatService {
           // @ts-ignore - checking internal state provided by realtime-js
           while (Date.now() - start < timeout) {
             // @ts-ignore
-            if ((channel as any).state === "SUBSCRIBED") return true;
+            if ((channel as any).state === "joined") return true;
             await new Promise((r) => setTimeout(r, 50));
           }
           return false;
