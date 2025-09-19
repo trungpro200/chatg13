@@ -137,7 +137,7 @@ export default function ChannelSidebar({
 
   const handleSelectChannel = (channelId: string) => {
     if (isSwitchingChannel) return; // chặn spam.
-    setIsSwitchingChannel(true); // ắt đầu quá trình chuyển kênh.
+    setIsSwitchingChannel(true); // Bắt đầu quá trình chuyển kênh.
     setSelectedChannel(channelId);
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
   }
