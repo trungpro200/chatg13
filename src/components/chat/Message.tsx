@@ -38,6 +38,13 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     y: number;
   }>({ x: 0, y: 0, visible: false });
 
+  const [profilespopup, setProfilespopup] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    user: string | null;
+  }>({ visible: false, x: 0, y: 0, user: null });
+
   useEffect(() => {
     //Dynamic update on selectedGuild changes
     setMessages([]);
