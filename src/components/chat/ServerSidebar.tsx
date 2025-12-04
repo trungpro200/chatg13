@@ -1,6 +1,8 @@
 import React from "react";
 import { Guild } from "@/utils/guild/types";
 import Link from "next/link";
+import CategoryTitle from "./CategoryTitle";
+
 
 type Props = {
   guilds: Guild[];
@@ -27,13 +29,14 @@ export default function ServerSidebar({
   }
   return (
     <aside className="w-16 bg-gray-800 flex flex-col items-center py-4 space-y-4">
+      <CategoryTitle title= "User"/>
       <Link href ="/profile">
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer overflow-hidden hover:ring-2 hover:ring-blue-500"
           style={{
             backgroundColor: userAvatar ? "transparent" : getColorFromUsername(userName),
           }}
-          title="Profile"
+          title="User Profile"
         >
           {userAvatar ? (
             <img
@@ -46,12 +49,14 @@ export default function ServerSidebar({
           )}
         </div>
       </Link>
+      <CategoryTitle title= "Create"/>
       <button
         className="w-12 h-12 bg-gray-700 rounded-full hover:bg-gray-600"
         onClick={() => setIsModalOpen(true)}
       >
         +
       </button>
+      <CategoryTitle title= "Servers"/>
       {guilds.map((guild) => (
         <div
           key={guild.id}

@@ -142,22 +142,45 @@ export default function ChannelSidebar({
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
   }
 
+  const text_Channels = channels.filter((ch) => ch.type === channel_types.TEXT);
+  const voice_Channels = channels.filter((ch) => ch.type === channel_types.VOICE);
+
   return (
     <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
-      <ul>
-        {channels.map((channel) => (
-          <li key={channel.id}>
-            <Channel_
-              channel={channel}
-              onSelectedChannel={handleSelectChannel}
-              selectedChannel={selectedChannel}
-              disabled={isLoading || isSwitchingChannel} // disabled khi đang load hoặc đang chuyển kênh
-            />
-          </li>
-        ))}
-        {channels.length === 0 && (
-          <li className="text-gray-500 italic">No channels</li>
+      <ul className="space-y-1">
+        {/* --- TEXT CHANNELS --- */}
+        <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">TEXT CHANNELS</h4>
+        {text_Channels.length > 0 ? (
+          text_Channels.map((channel) => (
+            <li key={channel.id}>
+              <Channel_
+                channel={channel}
+                onSelectedChannel={handleSelectChannel}
+                selectedChannel={selectedChannel}
+                disabled={isLoading || isSwitchingChannel}
+              />
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500 italic px-2">No text channels</li>
+        )}
+
+        {/* --- VOICE CHANNELS --- */}
+        <h4 className="text-gray-400 text-xs font-bold mt-4 mb-1 px-2">VOICE CHANNELS</h4>
+        {voice_Channels.length > 0 ? (
+          voice_Channels.map((channel) => (
+            <li key={channel.id}>
+              <Channel_
+                channel={channel}
+                onSelectedChannel={handleSelectChannel}
+                selectedChannel={selectedChannel}
+                disabled={isLoading || isSwitchingChannel}
+              />
+            </li>
+          ))
+        ) : (
+          <li className="text-gray-500 italic px-2">No voice channels</li>
         )}
       </ul>
       {/* Form modal */}
