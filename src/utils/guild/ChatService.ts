@@ -41,7 +41,8 @@ class ChatService {
       .from("messages")
       .select("*, profiles(email)")
       .eq("channel_id", channelId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
 
     if (error) {
       console.error("fetchMessages error:", error);

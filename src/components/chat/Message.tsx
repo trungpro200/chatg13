@@ -4,6 +4,7 @@ import { Guild } from "@/utils/guild/types";
 import { supabase } from "@/lib/supabaseClient";
 import ContextMenu from "../ContextMenu";
 import { FaThumbtack } from "react-icons/fa6";
+import SearchBar from "./Searchbar";
 
 type Props = {
   selectedChannel: string | null;
@@ -21,6 +22,9 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   const [pendingMessages, setPendingMessages] = useState<MessageType[]>([]);
   const [pinnedMsg, setPinnedMsg] = useState<MessageType[]>([]);
   const [pinLoading, setPinLoading] = useState<string | number | null>(null);
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const msgRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -178,15 +182,15 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
 
       // fallback: sau 1s nếu subscription chưa add message thì tự thêm
-      setTimeout(() => {
-        setMessages((prev) => {
-          const alreadyExists = prev.some((m) => m.id === savedMsg.id);
-          if (!alreadyExists) {
-            return [...prev, savedMsg];
-          }
-          return prev;
-        });
-      }, 1000)
+      // setTimeout(() => {
+      //   setMessages((prev) => {
+      //     const alreadyExists = prev.some((m) => m.id === savedMsg.id);
+      //     if (!alreadyExists) {
+      //       return [...prev, savedMsg];
+      //     }
+      //     return prev;
+      //   });
+      // }, 1000)
       // setMessages((prev) => [...prev, savedMsg]);
     }
     catch (err) {
@@ -235,6 +239,21 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     }
   }, [input]);
 
+  useEffect(() => {
+    if (!search.trim()) return;
+
+    const keyword = search.toLowerCase();
+
+    const found = messages.find((m) =>
+      m.content.toLowerCase().includes(keyword)
+    );
+
+    if (found) {
+      scrollToMessage(found.id);
+    }
+  }, [search]);
+
+
 
   const scrollToMessage = (msgId: string | number) => {
     const el = msgRefs.current[msgId];
@@ -252,18 +271,33 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           {selectedChannel ? `# ${selectedChannel}` : "Select a channel"}
         </h3>
 
-        <button
-          onClick={() => setShowMembers(!showMembers)}
-          className="p-2 rounded hover:bg-gray-700"
-          title={showMembers ? "Hide Members" : "Show Members"}
-        >
-          {showMembers ? (
-            <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=1A1A1A" alt="Hide Members" className="w-6 h-6" />
-          ) : (
-            <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=FFFFFF" alt="Show Members" className="w-6 h-6" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+            <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="p-2 rounded hover:bg-gray-700"
+          >
+            <img src="https://img.icons8.com/material-outlined/24/EBEBEB/search--v1.png" className="w-6 h-6" />
+          </button>
+
+          <button
+            onClick={() => setShowMembers(!showMembers)}
+            className="p-2 rounded hover:bg-gray-700"
+            title={showMembers ? "Hide Members" : "Show Members"}
+          >
+            {showMembers ? (
+              <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=1A1A1A" alt="Hide Members" className="w-6 h-6" />
+            ) : (
+              <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=FFFFFF" alt="Show Members" className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </header>
+
+      {showSearch && (
+        <div className="p-3 border-b border-gray-700 bg-gray-900">
+          <SearchBar value={search} onChange={setSearch} placeholder="Search messages..." />
+        </div>
+      )}
 
       {pinnedMsg.length > 0 && (
         <div
@@ -306,7 +340,16 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                         {usernames[msg.author_id] || msg.author_id}
                       </span>
                     </div>
-                    <p className="text-gray-200 text-sm">{msg.content}</p>
+                    <p className="text-gray-200 text-sm"
+                    dangerouslySetInnerHTML={{
+                      __html: search
+                        ? msg.content.replace(
+                          new RegExp(`(${search})`, "gi"),
+                            `<mark class="bg-yellow-400 text-black">$1</mark>`
+                          )
+                        : msg.content,
+                    }}
+                    ></p>
 
                     {msg.id.toString().startsWith("temp-") && (
                       <span className="text-xs text-gray-400 italic">Tin nhắn đang gửi...</span>
