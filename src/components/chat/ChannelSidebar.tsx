@@ -11,15 +11,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Mic, Check } from "lucide-react";
+import { Settings, Mic, Check, Search } from "lucide-react";
 import { BsChatFill } from "react-icons/bs";
 import { channel_types, Channel } from "@/utils/guild/types";
+import SearchBar from "./Searchbar";
 
 type ChannelProps = {
   channel: Channel;
   onSelectedChannel: (id: string ) => void;
   selectedChannel: string | null;
   disabled?: boolean;
+  search: string;
 };
 
 type SidebarProps = {
@@ -28,11 +30,29 @@ type SidebarProps = {
   setSelectedChannel: (id: string | null) => void; //This shit referencing a useState Function
 };
 
+function highlightText(text: string, keyword: string) { //Highlight từ khóa được nhập
+  if (!keyword.trim()) return text;
+
+  const regex = new RegExp(`(${keyword})`, "gi");
+  const parts = text.split(regex);
+
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-yellow-400 text-black">
+        {part}
+      </mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 function Channel_({
   channel,
   onSelectedChannel,
   selectedChannel,
   disabled,
+  search,
 }: ChannelProps) {
   const isActive = selectedChannel === channel.name;
   return (
@@ -53,7 +73,9 @@ function Channel_({
         ) : (
           <Mic size={15} className="text-gray-400" />
         )}
-        {channel.name}
+        <span className="truncate">
+          {highlightText(channel.name, search)}
+        </span>
       </button>
 
       {/* {Icon Settings} */}
@@ -80,6 +102,7 @@ export default function ChannelSidebar({
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitchingChannel, setIsSwitchingChannel] = useState(false); // added
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -142,12 +165,21 @@ export default function ChannelSidebar({
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
   }
 
-  const text_Channels = channels.filter((ch) => ch.type === channel_types.TEXT);
-  const voice_Channels = channels.filter((ch) => ch.type === channel_types.VOICE);
+  // Lọc kênh theo từ khóa tìm kiếm
+  const filtered = channels.filter((ch) =>
+    ch.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const text_Channels = filtered.filter((ch) => ch.type === channel_types.TEXT);
+  const voice_Channels = filtered.filter((ch) => ch.type === channel_types.VOICE);
 
   return (
     <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
+
+      {/* SEARCH BAR */}
+      <SearchBar value={search} onChange={setSearch} placeholder="Search channels..." className="mb-3"/>
+
       <ul className="space-y-1">
         {/* --- TEXT CHANNELS --- */}
         <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">TEXT CHANNELS</h4>
@@ -159,6 +191,7 @@ export default function ChannelSidebar({
                 onSelectedChannel={handleSelectChannel}
                 selectedChannel={selectedChannel}
                 disabled={isLoading || isSwitchingChannel}
+                search={search}
               />
             </li>
           ))
@@ -176,6 +209,7 @@ export default function ChannelSidebar({
                 onSelectedChannel={handleSelectChannel}
                 selectedChannel={selectedChannel}
                 disabled={isLoading || isSwitchingChannel}
+                search={search}
               />
             </li>
           ))

@@ -14,6 +14,23 @@ type Props = {
   setShowMembers: (v: boolean) => void;
 };
 
+function highlightText(text: string, keyword: string) { //Highlight từ khóa được nhập
+  if (!keyword.trim()) return text;
+
+  const regex = new RegExp(`(${keyword})`, "gi");
+  const parts = text.split(regex);
+
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-yellow-400 text-black">
+        {part}
+      </mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 export default function Message({ selectedChannel, selectedGuild, setSelectedChannel, showMembers, setShowMembers }: Props) {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [input, setInput] = useState("");
@@ -29,6 +46,8 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const msgRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+
 
   const [menu, setMenu] = useState<{
     x: number;
@@ -176,7 +195,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     scrollToBottom();
 
     try {
-      const savedMsg = await chatService.sendMessage(channelId, input);
+      /*const savedMsg = */await chatService.sendMessage(channelId, input);
 
       // Bỏ pending
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -239,7 +258,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     }
   }, [input]);
 
-  useEffect(() => {
+  useEffect(() => { //Lọc tin nhắn chứa từ khóa
     if (!search.trim()) return;
 
     const keyword = search.toLowerCase();
@@ -252,6 +271,21 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       scrollToMessage(found.id);
     }
   }, [search]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (showSearch && searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearch(false); // tự động ẩn search bar
+        setSearch(""); // xoá từ khoá khi đóng
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSearch]);
 
 
 
@@ -272,7 +306,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
         </h3>
 
         <div className="flex items-center gap-2">
-            <button
+          <button
             onClick={() => setShowSearch(!showSearch)}
             className="p-2 rounded hover:bg-gray-700"
           >
@@ -294,7 +328,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       </header>
 
       {showSearch && (
-        <div className="p-3 border-b border-gray-700 bg-gray-900">
+        <div ref={searchRef} className="p-3 border-b border-gray-700 bg-gray-900">
           <SearchBar value={search} onChange={setSearch} placeholder="Search messages..." />
         </div>
       )}
@@ -340,16 +374,11 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                         {usernames[msg.author_id] || msg.author_id}
                       </span>
                     </div>
-                    <p className="text-gray-200 text-sm"
-                    dangerouslySetInnerHTML={{
-                      __html: search
-                        ? msg.content.replace(
-                          new RegExp(`(${search})`, "gi"),
-                            `<mark class="bg-yellow-400 text-black">$1</mark>`
-                          )
-                        : msg.content,
-                    }}
-                    ></p>
+                    <p className="text-gray-200 text-sm">
+                      <span className="truncate">
+                        {highlightText(msg.content, search)}
+                      </span>
+                    </p>
 
                     {msg.id.toString().startsWith("temp-") && (
                       <span className="text-xs text-gray-400 italic">Tin nhắn đang gửi...</span>
