@@ -281,7 +281,6 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };

@@ -47,8 +47,8 @@ export default function ContextMenu({
         onClose();
       }
     }
-    window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
   
   if (!guild && labels.length === 0) return null;
