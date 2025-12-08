@@ -41,6 +41,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   const [pinLoading, setPinLoading] = useState<string | number | null>(null);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -56,6 +57,12 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   }>({ x: 0, y: 0, message: null });
 
   const [pinMenu, setPinMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({ x: 0, y: 0, visible: false });
+
+  const [optionMenu, setOptionMenu] = useState<{
     visible: boolean;
     x: number;
     y: number;
@@ -374,7 +381,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                       </span>
                     </div>
                     <p className="text-gray-200 text-sm">
-                      <span className="truncate">
+                      <span className="whitespace-pre-wrap break-words">
                         {highlightText(msg.content, search)}
                       </span>
                     </p>
@@ -392,61 +399,99 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
       {channelId && (
         <footer className="p-4 border-t border-gray-700">
-          <form onSubmit={handleSend} className="flex gap-2 items-end">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              placeholder="Message..."
-              value={input}
+          <form onSubmit={handleSend} className="w-full flex flex-col gap-2">
+
+            {uploadedFile && (
+              <div className="mb-2 p-2 bg-gray-800 text-gray-300 rounded flex items-center justify-between">
+                <span>{uploadedFile.name}</span>
+                <button
+                  onClick={() => setUploadedFile(null)}
+                >
+                  <img src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png" alt="Cancel" className="w-5 h-5"/>
+                </button>
+              </div>
+            )}
+
+            <input
+              id="hidden-file-input"
+              type="file"
+              className="hidden"
               onChange={(e) => {
-                handleInputChange(e);
-
-                // Bật scroll khi nội dung > chiều cao
-                if (textareaRef.current) {
-                  textareaRef.current.style.overflowY =
-                    textareaRef.current.scrollHeight > textareaRef.current.clientHeight + 2 ? "auto" : "hidden";
+                if (e.target.files?.[0]) {
+                  setUploadedFile(e.target.files[0]);
                 }
-            }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (e.shiftKey) { // Xuống dòng
-                    e.preventDefault();
-                    
-                    if (textareaRef.current) {
-                        const { selectionStart, selectionEnd } = e.currentTarget;
+              }}
+            />
 
-                        // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
-                        if (input.trim().length > 0) {
-                          const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
-                          setInput(newValue);
-                        }
+            <div className="flex gap-2 items-end">
+              <button type="button" className="p-2 rounded hover:bg-gray-700" onClick={(e) =>{
+                const rect = (e.target as HTMLButtonElement).getBoundingClientRect();
+                setOptionMenu({
+                  visible: true,
+                  x: rect.left,
+                  y: rect.top - 64
+                });
+              }}
+              >
+                <img src="https://img.icons8.com/ios/50/EBEBEB/plus-2-math.png" alt="Plus" className="w-7 h-7"/>
+              </button>
 
-                      // di chuyển con trỏ đúng chỗ
-                      requestAnimationFrame(() => {
-                        if (textareaRef.current) {
-                          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = selectionStart + 1;
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                placeholder="Message..."
+                value={input}
+                onChange={(e) => {
+                  handleInputChange(e);
 
-                          // luôn scrollToBottom sau khi shift+enter
-                          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-                        }
-                      });
+                  // Bật scroll khi nội dung > chiều cao
+                  if (textareaRef.current) {
+                    textareaRef.current.style.overflowY =
+                      textareaRef.current.scrollHeight > textareaRef.current.clientHeight + 2 ? "auto" : "hidden";
+                  }
+              }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (e.shiftKey) { // Xuống dòng
+                      e.preventDefault();
+                      
+                      if (textareaRef.current) {
+                          const { selectionStart, selectionEnd } = e.currentTarget;
+
+                          // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
+                          if (input.trim().length > 0) {
+                            const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
+                            setInput(newValue);
+                          }
+
+                        // di chuyển con trỏ đúng chỗ
+                        requestAnimationFrame(() => {
+                          if (textareaRef.current) {
+                            textareaRef.current.selectionStart = textareaRef.current.selectionEnd = selectionStart + 1;
+
+                            // luôn scrollToBottom sau khi shift+enter
+                            textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+                          }
+                        });
+                      }
+                    }
+                    else {
+                      // Gửi tin nhắn
+                      handleSend(e as unknown as React.FormEvent);
                     }
                   }
-                  else {
-                    // Gửi tin nhắn
-                    handleSend(e as unknown as React.FormEvent);
-                  }
-                }
-              }}  
-              className="w-full p-2 rounded bg-gray-900 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
-            />
-            <button
-              type="submit"
-              //className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
-              className="px-4 py-2 bg-gray-900 hover:bg-gray-600 rounded"
-            >
-              <img src="https://img.icons8.com/?size=100&id=uryN07UGUVNh&format=png&color=000000" alt="Send" className="w-5 h-6" />
-            </button>
+                }}  
+                className="w-full p-2 rounded bg-gray-900 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
+              />
+              <button
+                type="submit"
+                //className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                className="px-4 py-2 bg-gray-900 hover:bg-gray-600 rounded"
+              >
+                <img src="https://img.icons8.com/?size=100&id=uryN07UGUVNh&format=png&color=000000" alt="Send" className="w-5 h-6"/>
+              </button>
+            </div>
+
           </form>
         </footer>
       )}
@@ -468,6 +513,27 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
               : () => handleMenuClick(menu.message!.pinned ? "Unpin" : "Pin", menu.message!)
           ]}
           onClose={() => setMenu({ x: 0, y: 0, message: null })}
+        />
+      )}
+
+      {optionMenu.visible && (
+        <ContextMenu
+          x={optionMenu.x}
+          y={optionMenu.y}
+          guild={selectedGuild}
+          labels={[
+            <div className="flex items-center gap-2" key="Upfile">
+              <img  src="https://img.icons8.com/windows/512/EBEBEB/file.png" alt="Upfile" className="w-6 h-6"/>
+              <span>Upload file</span>
+            </div>
+          ]}
+          onClicks={[
+            () => {
+              document.getElementById("hidden-file-input")?.click();
+              setOptionMenu({ ...optionMenu, visible: false });
+            }
+          ]}
+          onClose={() => setOptionMenu({ ...optionMenu, visible: false })}
         />
       )}
 
