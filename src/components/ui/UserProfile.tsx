@@ -36,7 +36,7 @@ export default function UserProfile() {
       username: savedUsername || "",
       bio: savedBio || "Coder thích AI và chat app.",
       joined: savedJoined || now,
-      email: "example@gmail.com",
+      email: "",
     });
 
     setNewUsername(savedUsername || "");
@@ -44,6 +44,19 @@ export default function UserProfile() {
 
     if (!savedJoined) localStorage.setItem("user-joined", now);
   }, []);
+  useEffect(() => {
+  const loadEmail = async () => {
+    const { data } = await supabase.auth.getUser();
+    const email = data.user?.email || "";
+
+    setUser((prev) => ({
+      ...prev,
+      email: email,
+    }));
+  };
+
+  loadEmail();
+}, []);
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
@@ -182,12 +195,12 @@ export default function UserProfile() {
         <div className="w-full mt-4">
           <p className="text-sm font-semibold">Bio</p>
           {!editing ? (
-            <p className="text-gray-400">{user.bio}</p>
+            <p className="text-gray-400 mt-1">{user.bio}</p>
           ) : (
             <textarea
               value={newBio}
               onChange={(e) => setNewBio(e.target.value)}
-              className="w-full p-2 rounded bg-white text-black resize-none"
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
             />
           )}
         </div>
