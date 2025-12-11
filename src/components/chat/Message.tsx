@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useState, useRef } from "react";
 import { chatService, Message as MessageType } from "@/utils/guild/ChatService";
 import { Guild } from "@/utils/guild/types";
@@ -51,6 +52,7 @@ export default function Message({
   const [showSearch, setShowSearch] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Fetch current user ID from Supabase session
@@ -128,11 +130,12 @@ export default function Message({
     if (usernames[userId]) return usernames[userId];
     const { data } = await supabase
       .from("profiles")
-      .select("email, username")
+      .select("email, nickname, avatar_URL")
       .eq("id", userId)
       .maybeSingle();
-    const name = data?.username || data?.email || "Unknown";
+    const name = data?.nickname || data?.email || "Unknown";
     setUsernames((prev) => ({ ...prev, [userId]: name }));
+    setAvatars((prev) => ({ ...prev, [userId]: data?.avatar_URL || "" }));
     return name;
   };
 
@@ -422,9 +425,15 @@ export default function Message({
               }}
             >
               <div className="flex items-start gap-2">
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-600 text-white">
-                  {msg.author_id?.[0]?.toUpperCase() || "U"}
-                </div>
+                <img
+                  src={
+                    avatars[msg.author_id]
+                      ? avatars[msg.author_id]
+                      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author_id}`
+                  }
+                  alt="Avatar"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
 
                 <div className="flex-1 min-w-2xs">
                   <div className="flex items-center justify-between">

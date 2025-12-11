@@ -52,7 +52,7 @@ export default function UserProfile() {
     fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -62,6 +62,36 @@ export default function UserProfile() {
       setUser((prev) => ({ ...prev, avatar: avatarUrl }));
       localStorage.setItem("user-avatar", avatarUrl);
     };
+
+    const uid = await supabase.auth
+      .getUser()
+      .then((res) => res.data.user?.id || "");
+
+    //Save avatar to database
+    //Upload first
+    const { data, error } = await supabase.storage
+      .from("avatars")
+      .upload(`avt-${uid}`, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading avatar:", error.message);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(`avt-${uid}`);
+
+    const avatarUrl = urlData.publicUrl;
+    //Update profile
+    await supabase.from("profiles").upsert({
+      avatar_URL: avatarUrl,
+      id: uid,
+    });
+
     reader.readAsDataURL(file);
   };
 
