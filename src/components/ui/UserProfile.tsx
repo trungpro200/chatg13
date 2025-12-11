@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function UserProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,17 +59,27 @@ export default function UserProfile() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const avatarUrl = reader.result as string;
-      setUser(prev => ({ ...prev, avatar: avatarUrl }));
+      setUser((prev) => ({ ...prev, avatar: avatarUrl }));
       localStorage.setItem("user-avatar", avatarUrl);
     };
     reader.readAsDataURL(file);
   };
 
   // Lưu username và bio
-  const handleSave = () => {
-    setUser(prev => ({ ...prev, username: newUsername, bio: newBio }));
+  const handleSave = async () => {
+    setUser((prev) => ({ ...prev, username: newUsername, bio: newBio }));
     localStorage.setItem("user-username", newUsername);
     localStorage.setItem("user-bio", newBio);
+
+    const uid = await supabase.auth
+      .getUser()
+      .then((res) => res.data.user?.id || "");
+
+    await supabase.from("profiles").upsert({
+      nickname: newUsername,
+      id: uid,
+    });
+
     setEditing(false);
   };
 
@@ -98,7 +109,9 @@ export default function UserProfile() {
           onClick={handleAvatarClick}
           className="w-28 h-28 rounded-full border shadow cursor-pointer flex items-center justify-center text-2xl font-bold text-white overflow-hidden"
           style={{
-            backgroundColor: user.avatar ? "transparent" : getColorFromUsername(user.username),
+            backgroundColor: user.avatar
+              ? "transparent"
+              : getColorFromUsername(user.username),
           }}
         >
           {user.avatar ? (
@@ -160,7 +173,9 @@ export default function UserProfile() {
           ) : (
             <>
               <Button onClick={handleSave}>Lưu</Button>
-              <Button variant="destructive" onClick={() => setEditing(false)}>Hủy</Button>
+              <Button variant="destructive" onClick={() => setEditing(false)}>
+                Hủy
+              </Button>
             </>
           )}
         </div>

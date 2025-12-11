@@ -128,10 +128,10 @@ export default function Message({
     if (usernames[userId]) return usernames[userId];
     const { data } = await supabase
       .from("profiles")
-      .select("email")
+      .select("email, username")
       .eq("id", userId)
       .maybeSingle();
-    const name = data?.email || "Unknown";
+    const name = data?.username || data?.email || "Unknown";
     setUsernames((prev) => ({ ...prev, [userId]: name }));
     return name;
   };
@@ -426,7 +426,7 @@ export default function Message({
                   {msg.author_id?.[0]?.toUpperCase() || "U"}
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 min-w-2xs">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm text-gray-300">
                       {usernames[msg.author_id] || msg.author_id}
