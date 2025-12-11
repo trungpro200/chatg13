@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import ContextMenu from "../ContextMenu";
 import { FaThumbtack } from "react-icons/fa6";
 import SearchBar from "./Searchbar";
+import Image from "next/image";
 
 type Props = {
   selectedChannel: string | null;
@@ -14,7 +15,8 @@ type Props = {
   setShowMembers: (v: boolean) => void;
 };
 
-function highlightText(text: string, keyword: string) { //Highlight từ khóa được nhập
+function highlightText(text: string, keyword: string) {
+  //Highlight từ khóa được nhập
   if (!keyword.trim()) return text;
 
   const regex = new RegExp(`(${keyword})`, "gi");
@@ -31,7 +33,13 @@ function highlightText(text: string, keyword: string) { //Highlight từ khóa �
   );
 }
 
-export default function Message({ selectedChannel, selectedGuild, setSelectedChannel, showMembers, setShowMembers }: Props) {
+export default function Message({
+  selectedChannel,
+  selectedGuild,
+  setSelectedChannel,
+  showMembers,
+  setShowMembers,
+}: Props) {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [input, setInput] = useState("");
   const [channelId, setChannelId] = useState<number | null>(null);
@@ -42,13 +50,21 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Fetch current user ID from Supabase session
+    const getUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data?.user) setUserId(data.user.id);
+    };
+    getUser();
+  }, []);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const msgRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLDivElement | null>(null);
-
 
   const [menu, setMenu] = useState<{
     x: number;
@@ -186,11 +202,11 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     const newMsg: MessageType = {
       id: tempId, // luôn khác id thực từ DB
       content: input,
-      author_id: "me", // TODO: thay bằng user id thực tế
+      author_id: userId || "unknown", // Use actual user id from session
       channel_id: channelId,
       pinned: false,
       created_at: new Date().toISOString(),
-    }
+    };
 
     setPendingMessages((prev) => [...prev, newMsg]);
 
@@ -202,10 +218,17 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     scrollToBottom();
 
     try {
-      /*const savedMsg = */await chatService.sendMessage(channelId, input);
+      const savedMsg = await chatService.sendMessage(
+        channelId,
+        input,
+        uploadedFile
+      );
+
+      newMsg.attachments = savedMsg.attachments; // cập nhật attachments nếu có
 
       // Bỏ pending
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setUploadedFile(null);
 
       // fallback: sau 1s nếu subscription chưa add message thì tự thêm
       // setTimeout(() => {
@@ -218,8 +241,7 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       //   });
       // }, 1000)
       // setMessages((prev) => [...prev, savedMsg]);
-    }
-    catch (err) {
+    } catch (err) {
       console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId)); // nếu fail thì bỏ pending
     }
@@ -235,15 +257,17 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     if (label === "Pin" || label === "Unpin") {
       setPinLoading(msg.id);
       try {
-          const updated = await chatService.togglePinned(Number(msg.id), !msg.pinned);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msg.id ? updated : m))
+        const updated = await chatService.togglePinned(
+          Number(msg.id),
+          !msg.pinned
         );
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? updated : m)));
         setPinnedMsg((prev) =>
-          updated.pinned ? [...(prev ?? []), updated] : (prev ?? []).filter((m) => m.id !== msg.id)
+          updated.pinned
+            ? [...(prev ?? []), updated]
+            : (prev ?? []).filter((m) => m.id !== msg.id)
         );
-      }
-      finally {
+      } finally {
         setPinLoading(null);
       }
     }
@@ -254,18 +278,21 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
     setInput(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = "40px"; // reset trước khi tính lại
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
     }
   };
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
     }
   }, [input]);
 
-  useEffect(() => { //Lọc tin nhắn chứa từ khóa
+  useEffect(() => {
+    //Lọc tin nhắn chứa từ khóa
     if (!search.trim()) return;
 
     const keyword = search.toLowerCase();
@@ -281,7 +308,11 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (showSearch && searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      if (
+        showSearch &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target as Node)
+      ) {
         setShowSearch(false); // tự động ẩn search bar
         setSearch(""); // xoá từ khoá khi đóng
       }
@@ -292,8 +323,6 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showSearch]);
-
-
 
   const scrollToMessage = (msgId: string | number) => {
     const el = msgRefs.current[msgId];
@@ -316,7 +345,10 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
             onClick={() => setShowSearch(!showSearch)}
             className="p-2 rounded hover:bg-gray-700"
           >
-            <img src="https://img.icons8.com/material-outlined/24/EBEBEB/search--v1.png" className="w-6 h-6" />
+            <img
+              src="https://img.icons8.com/material-outlined/24/EBEBEB/search--v1.png"
+              className="w-6 h-6"
+            />
           </button>
 
           <button
@@ -325,17 +357,32 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
             title={showMembers ? "Hide Members" : "Show Members"}
           >
             {showMembers ? (
-              <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=1A1A1A" alt="Hide Members" className="w-6 h-6" />
+              <img
+                src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=1A1A1A"
+                alt="Hide Members"
+                className="w-6 h-6"
+              />
             ) : (
-              <img src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=FFFFFF" alt="Show Members" className="w-6 h-6" />
+              <img
+                src="https://img.icons8.com/?size=100&id=phuw0CKkvo8u&format=png&color=FFFFFF"
+                alt="Show Members"
+                className="w-6 h-6"
+              />
             )}
           </button>
         </div>
       </header>
 
       {showSearch && (
-        <div ref={searchRef} className="p-3 border-b border-gray-700 bg-gray-900">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search messages..." />
+        <div
+          ref={searchRef}
+          className="p-3 border-b border-gray-700 bg-gray-900"
+        >
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search messages..."
+          />
         </div>
       )}
 
@@ -352,62 +399,90 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
         </div>
       )}
 
+      {/* Message bubbles */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {[...messages, ...pendingMessages].map((msg) => (
+          <div
+            key={msg.id}
+            ref={(el) => {
+              msgRefs.current[msg.id] = el;
+            }}
+            className="flex w-full justify-start"
+          >
             <div
-              key={msg.id}
-              ref={(el) => {
-                (msgRefs.current[msg.id] = el)}
-              }
-              className="flex w-full justify-start"
-            >
-              <div
-                className={`relative p-3 rounded-md shadow-lg inline-block break-all whitespace-pre-wrap max-w-[70%] ${
-                  msg.pinned ? "bg-yellow-800" : msg.id.toString().startsWith("temp-") ? "bg-gray-700 opacity-70" : "bg-gray-800"
-                }`}
-                onContextMenu={(e) => {
+              className={`relative p-3 rounded-md shadow-lg inline-block break-all whitespace-pre-wrap max-w-[70%] ${
+                msg.pinned
+                  ? "bg-yellow-800"
+                  : msg.id.toString().startsWith("temp-")
+                  ? "bg-gray-700 opacity-70"
+                  : "bg-gray-800"
+              }`}
+              onContextMenu={(e) => {
                 setMenu({ x: e.clientX, y: e.clientY, message: msg });
               }}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-600 text-white">
-                    {msg.author_id?.[0]?.toUpperCase() || "U"}
+            >
+              <div className="flex items-start gap-2">
+                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-600 text-white">
+                  {msg.author_id?.[0]?.toUpperCase() || "U"}
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-gray-300">
+                      {usernames[msg.author_id] || msg.author_id}
+                    </span>
+                  </div>
+                  <div className="text-gray-200 text-sm">
+                    <span className="whitespace-pre-wrap break-words">
+                      {highlightText(msg.content, search)}
+                    </span>
+
+                    {msg.attachments &&
+                      Array.isArray(msg.attachments) &&
+                      msg.attachments.map((att, idx) => (
+                        <div key={idx} className="mt-2">
+                          <div className="relative w-full h-48 mt-2">
+                            <Image
+                              src={
+                                supabase.storage
+                                  .from("attachments")
+                                  .getPublicUrl(att).data.publicUrl
+                              }
+                              alt="Attachment"
+                              className="rounded object-cover"
+                              fill
+                              sizes="(max-width: 768px) 100vw, 400px"
+                            />
+                          </div>
+                        </div>
+                      ))}
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-gray-300">
-                        {usernames[msg.author_id] || msg.author_id}
-                      </span>
-                    </div>
-                    <p className="text-gray-200 text-sm">
-                      <span className="whitespace-pre-wrap break-words">
-                        {highlightText(msg.content, search)}
-                      </span>
-                    </p>
-
-                    {msg.id.toString().startsWith("temp-") && (
-                      <span className="text-xs text-gray-400 italic">Tin nhắn đang gửi...</span>
-                    )}
-                  </div>
+                  {msg.id.toString().startsWith("temp-") && (
+                    <span className="text-xs text-gray-400 italic">
+                      Tin nhắn đang gửi...
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
-          <div ref={endOfMessagesRef} />
+          </div>
+        ))}
+        <div ref={endOfMessagesRef} />
       </div>
 
       {channelId && (
         <footer className="p-4 border-t border-gray-700">
           <form onSubmit={handleSend} className="w-full flex flex-col gap-2">
-
             {uploadedFile && (
               <div className="mb-2 p-2 bg-gray-800 text-gray-300 rounded flex items-center justify-between">
                 <span>{uploadedFile.name}</span>
-                <button
-                  onClick={() => setUploadedFile(null)}
-                >
-                  <img src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png" alt="Cancel" className="w-5 h-5"/>
+                <button onClick={() => setUploadedFile(null)}>
+                  <img
+                    src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png"
+                    alt="Cancel"
+                    className="w-5 h-5"
+                  />
                 </button>
               </div>
             )}
@@ -424,16 +499,25 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
             />
 
             <div className="flex gap-2 items-end">
-              <button type="button" className="p-2 rounded hover:bg-gray-700" onClick={(e) =>{
-                const rect = (e.target as HTMLButtonElement).getBoundingClientRect();
-                setOptionMenu({
-                  visible: true,
-                  x: rect.left,
-                  y: rect.top - 64
-                });
-              }}
+              <button
+                type="button"
+                className="p-2 rounded hover:bg-gray-700"
+                onClick={(e) => {
+                  const rect = (
+                    e.target as HTMLButtonElement
+                  ).getBoundingClientRect();
+                  setOptionMenu({
+                    visible: true,
+                    x: rect.left,
+                    y: rect.top - 64,
+                  });
+                }}
               >
-                <img src="https://img.icons8.com/ios/50/EBEBEB/plus-2-math.png" alt="Plus" className="w-7 h-7"/>
+                <img
+                  src="https://img.icons8.com/ios/50/EBEBEB/plus-2-math.png"
+                  alt="Plus"
+                  className="w-7 h-7"
+                />
               </button>
 
               <textarea
@@ -447,40 +531,50 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                   // Bật scroll khi nội dung > chiều cao
                   if (textareaRef.current) {
                     textareaRef.current.style.overflowY =
-                      textareaRef.current.scrollHeight > textareaRef.current.clientHeight + 2 ? "auto" : "hidden";
+                      textareaRef.current.scrollHeight >
+                      textareaRef.current.clientHeight + 2
+                        ? "auto"
+                        : "hidden";
                   }
-              }}
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    if (e.shiftKey) { // Xuống dòng
+                    if (e.shiftKey) {
+                      // Xuống dòng
                       e.preventDefault();
-                      
-                      if (textareaRef.current) {
-                          const { selectionStart, selectionEnd } = e.currentTarget;
 
-                          // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
-                          if (input.trim().length > 0) {
-                            const newValue = input.substring(0, selectionStart) + "\n" + input.substring(selectionEnd);
-                            setInput(newValue);
-                          }
+                      if (textareaRef.current) {
+                        const { selectionStart, selectionEnd } =
+                          e.currentTarget;
+
+                        // Chỉ chèn xuống dòng nếu input dòng đầu tiên có chữ
+                        if (input.trim().length > 0) {
+                          const newValue =
+                            input.substring(0, selectionStart) +
+                            "\n" +
+                            input.substring(selectionEnd);
+                          setInput(newValue);
+                        }
 
                         // di chuyển con trỏ đúng chỗ
                         requestAnimationFrame(() => {
                           if (textareaRef.current) {
-                            textareaRef.current.selectionStart = textareaRef.current.selectionEnd = selectionStart + 1;
+                            textareaRef.current.selectionStart =
+                              textareaRef.current.selectionEnd =
+                                selectionStart + 1;
 
                             // luôn scrollToBottom sau khi shift+enter
-                            textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+                            textareaRef.current.scrollTop =
+                              textareaRef.current.scrollHeight;
                           }
                         });
                       }
-                    }
-                    else {
+                    } else {
                       // Gửi tin nhắn
                       handleSend(e as unknown as React.FormEvent);
                     }
                   }
-                }}  
+                }}
                 className="w-full p-2 rounded bg-gray-900 border border-gray-700 focus:outline-none resize-none max-h-40 overflow-y-hidden"
               />
               <button
@@ -488,10 +582,13 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
                 //className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
                 className="px-4 py-2 bg-gray-900 hover:bg-gray-600 rounded"
               >
-                <img src="https://img.icons8.com/?size=100&id=uryN07UGUVNh&format=png&color=000000" alt="Send" className="w-5 h-6"/>
+                <img
+                  src="https://img.icons8.com/?size=100&id=uryN07UGUVNh&format=png&color=000000"
+                  alt="Send"
+                  className="w-5 h-6"
+                />
               </button>
             </div>
-
           </form>
         </footer>
       )}
@@ -502,15 +599,26 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           y={menu.y}
           guild={selectedGuild}
           labels={[
-            <span key="pin" className={`flex items-center ${pinLoading === menu.message.id ? "opacity-50 cursor-not-allowed" : ""}`}>
+            <span
+              key="pin"
+              className={`flex items-center ${
+                pinLoading === menu.message.id
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+            >
               <FaThumbtack className="inline mr-2" />
               {menu.message.pinned ? "Unpin" : "Pin"}
-            </span>
+            </span>,
           ]}
           onClicks={[
             pinLoading === menu.message?.id
               ? () => {} // không làm gì khi đang loading
-              : () => handleMenuClick(menu.message!.pinned ? "Unpin" : "Pin", menu.message!)
+              : () =>
+                  handleMenuClick(
+                    menu.message!.pinned ? "Unpin" : "Pin",
+                    menu.message!
+                  ),
           ]}
           onClose={() => setMenu({ x: 0, y: 0, message: null })}
         />
@@ -523,15 +631,19 @@ export default function Message({ selectedChannel, selectedGuild, setSelectedCha
           guild={selectedGuild}
           labels={[
             <div className="flex items-center gap-2" key="Upfile">
-              <img  src="https://img.icons8.com/windows/512/EBEBEB/file.png" alt="Upfile" className="w-6 h-6"/>
+              <img
+                src="https://img.icons8.com/windows/512/EBEBEB/file.png"
+                alt="Upfile"
+                className="w-6 h-6"
+              />
               <span>Upload file</span>
-            </div>
+            </div>,
           ]}
           onClicks={[
             () => {
               document.getElementById("hidden-file-input")?.click();
               setOptionMenu({ ...optionMenu, visible: false });
-            }
+            },
           ]}
           onClose={() => setOptionMenu({ ...optionMenu, visible: false })}
         />

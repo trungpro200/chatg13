@@ -8,15 +8,40 @@ export type Message = {
   created_at: string;
   pinned?: boolean;
   profiles?: { email: string | null };
+  attachments?: string[] | string;
 };
 
 class ChatService {
   // Gửi tin nhắn
-  async sendMessage(channelId: number, content: string) {
+  async sendMessage(
+    channelId: number,
+    content: string,
+    uploadedFile: File | null = null
+  ) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session?.user) throw new Error("Not logged in");
+
+    let fileName = null;
+    let attachmentId = null;
+
+    if (uploadedFile) {
+      //Create a attachment id based on current timestamp shifted by 8 bits
+      attachmentId = `att-${Date.now() << 8}`;
+      // Process file upload
+      const fileExt = uploadedFile.name.split(".").pop();
+      fileName = `${attachmentId}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from("attachments")
+        .upload(attachmentId, uploadedFile);
+      if (error) {
+        console.error("File upload error:", error);
+        throw new Error(error.message);
+      }
+      console.log("File uploaded:", data);
+    }
 
     const { data, error } = await supabase
       .from("messages")
@@ -24,6 +49,7 @@ class ChatService {
         channel_id: channelId,
         content,
         author_id: session.user.id,
+        attachments: attachmentId,
       })
       .select("*, profiles(email)")
       .single();
@@ -48,6 +74,14 @@ class ChatService {
       console.error("fetchMessages error:", error);
       throw new Error(error.message);
     }
+
+    //Reformat attachments from string to array
+    data?.forEach((msg) => {
+      if (msg.attachments && typeof msg.attachments === "string") {
+        msg.attachments = msg.attachments.split("\n");
+      }
+    });
+
     console.log("fetchMessages success:", data);
     return data as Message[];
   }
@@ -77,23 +111,27 @@ class ChatService {
     const baseDelay = 200; // ms
 
     // 🔑 Ensure session (access token) is ready before subscribing
-    let { data: { session } } = await supabase.auth.getSession();
+    let {
+      data: { session },
+    } = await supabase.auth.getSession();
     console.log("Initial session:", session);
     if (!session?.access_token) {
       console.log("No access token yet, waiting for auth state change...");
       await new Promise<void>((resolve) => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, newSession) => {
-            if (newSession?.access_token) {
-              console.log("Auth ready, continuing...");
-              subscription.unsubscribe();
-              resolve();
-            }
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, newSession) => {
+          if (newSession?.access_token) {
+            console.log("Auth ready, continuing...");
+            subscription.unsubscribe();
+            resolve();
           }
-        );
+        });
       });
       // refresh session
-      ({ data: { session } } = await supabase.auth.getSession());
+      ({
+        data: { session },
+      } = await supabase.auth.getSession());
     }
 
     if (session?.access_token && !supabase.realtime.accessTokenValue) {
@@ -124,9 +162,8 @@ class ChatService {
         // wait short time for internal state to become SUBSCRIBED
         const waitForSubscribed = async (timeout = 3000) => {
           const start = Date.now();
-          // @ts-ignore - checking internal state provided by realtime-js
           while (Date.now() - start < timeout) {
-            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if ((channel as any).state === "joined") return true;
             await new Promise((r) => setTimeout(r, 50));
           }
@@ -158,7 +195,6 @@ class ChatService {
 
     throw new Error("Failed to subscribe after multiple attempts");
   }
-
 }
 
 export const chatService = new ChatService();
