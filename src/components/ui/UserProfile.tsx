@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Edit3, Save, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function UserProfile() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // State
   const [user, setUser] = useState({
     username: "",
     email: "example@gmail.com",
@@ -21,7 +23,6 @@ export default function UserProfile() {
   const [newUsername, setNewUsername] = useState("");
   const [newBio, setNewBio] = useState("");
 
-  // Load từ localStorage khi mở component
   useEffect(() => {
     const savedAvatar = localStorage.getItem("user-avatar");
     const savedUsername = localStorage.getItem("user-username");
@@ -35,22 +36,29 @@ export default function UserProfile() {
       username: savedUsername || "",
       bio: savedBio || "Coder thích AI và chat app.",
       joined: savedJoined || now,
-      email: "example@gmail.com",
+      email: "",
     });
 
     setNewUsername(savedUsername || "");
     setNewBio(savedBio || "Coder thích AI và chat app.");
 
-    // Lưu joined lần đầu nếu chưa có
-    if (!savedJoined) {
-      localStorage.setItem("user-joined", now);
-    }
+    if (!savedJoined) localStorage.setItem("user-joined", now);
   }, []);
+  useEffect(() => {
+  const loadEmail = async () => {
+    const { data } = await supabase.auth.getUser();
+    const email = data.user?.email || "";
 
-  // Lưu avatar vào localStorage
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
+    setUser((prev) => ({
+      ...prev,
+      email: email,
+    }));
   };
+
+  loadEmail();
+}, []);
+
+  const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,26 +75,21 @@ export default function UserProfile() {
       .getUser()
       .then((res) => res.data.user?.id || "");
 
-    //Save avatar to database
-    //Upload first
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from("avatars")
       .upload(`avt-${uid}`, file, {
         cacheControl: "3600",
         upsert: true,
       });
 
-    if (error) {
-      console.error("Error uploading avatar:", error.message);
-      return;
-    }
+    if (error) return;
 
     const { data: urlData } = supabase.storage
       .from("avatars")
       .getPublicUrl(`avt-${uid}`);
 
     const avatarUrl = urlData.publicUrl;
-    //Update profile
+
     await supabase.from("profiles").upsert({
       avatar_URL: avatarUrl,
       id: uid,
@@ -95,7 +98,6 @@ export default function UserProfile() {
     reader.readAsDataURL(file);
   };
 
-  // Lưu username và bio
   const handleSave = async () => {
     setUser((prev) => ({ ...prev, username: newUsername, bio: newBio }));
     localStorage.setItem("user-username", newUsername);
@@ -113,28 +115,40 @@ export default function UserProfile() {
     setEditing(false);
   };
 
-  // Lấy màu nền từ chữ cái đầu username
   const getColorFromUsername = (username: string) => {
     const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
     const index = username?.charCodeAt(0) % colors.length || 0;
     return colors[index];
   };
 
-  // Format joined date hiển thị
   const formatJoined = (isoString: string) => {
     const d = new Date(isoString);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}/${d.getFullYear()} ${d
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="bg-white dark:bg-neutral-900 shadow-md rounded-xl p-6 w-full max-w-md border">
-      <div className="flex flex-col items-center">
-        {/* Avatar*/}
+    <div className="w-full max-w-md mx-auto mt-4 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border">
+
+      {/* 🔥 NAVBAR PROFILE */}
+      <div className="flex items-center gap-3 p-4 border-b dark:border-neutral-700">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-xl font-semibold">Profile</h1>
+      </div>
+
+      {/* CONTENT */}
+      <div className="flex flex-col items-center p-6">
+
+        {/* Avatar */}
         <div
           onClick={handleAvatarClick}
           className="w-28 h-28 rounded-full border shadow cursor-pointer flex items-center justify-center text-2xl font-bold text-white overflow-hidden"
@@ -181,17 +195,17 @@ export default function UserProfile() {
         <div className="w-full mt-4">
           <p className="text-sm font-semibold">Bio</p>
           {!editing ? (
-            <p className="text-gray-400">{user.bio}</p>
+            <p className="text-gray-400 mt-1">{user.bio}</p>
           ) : (
             <textarea
               value={newBio}
               onChange={(e) => setNewBio(e.target.value)}
-              className="w-full p-2 rounded bg-neutral-800"
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
             />
           )}
         </div>
 
-        {/* Joined date */}
+        {/* Joined */}
         <p className="text-xs text-gray-500 mt-4">
           Tham gia: {formatJoined(user.joined)}
         </p>
@@ -199,12 +213,20 @@ export default function UserProfile() {
         {/* Buttons */}
         <div className="flex gap-3 mt-6">
           {!editing ? (
-            <Button onClick={() => setEditing(true)}>Chỉnh sửa</Button>
+            <Button onClick={() => setEditing(true)} className="flex gap-2">
+              <Edit3 size={16} /> Chỉnh sửa
+            </Button>
           ) : (
             <>
-              <Button onClick={handleSave}>Lưu</Button>
-              <Button variant="destructive" onClick={() => setEditing(false)}>
-                Hủy
+              <Button onClick={handleSave} className="flex gap-2">
+                <Save size={16} /> Lưu
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setEditing(false)}
+                className="flex gap-2"
+              >
+                <X size={16} /> Hủy
               </Button>
             </>
           )}
