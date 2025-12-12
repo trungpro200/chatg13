@@ -58,7 +58,15 @@ class ChatService {
       console.error("sendMessage error:", error);
       throw new Error(error.message);
     }
-    return data as Message;
+    //return data as Message;
+    const savedMessage = data as Message;
+    if (typeof savedMessage.attachments === "string" && savedMessage.attachments.length > 0) {
+      savedMessage.attachments = [savedMessage.attachments];
+    } else {
+        // Nếu null/undefined/chuỗi rỗng, đặt là mảng rỗng
+        savedMessage.attachments = [];
+    }
+    return savedMessage; // Trả về message đã chuẩn hóa attachments: string[]
   }
 
   // hiện tin nhắn cũ
@@ -77,8 +85,11 @@ class ChatService {
 
     //Reformat attachments from string to array
     data?.forEach((msg) => {
-      if (msg.attachments && typeof msg.attachments === "string") {
-        msg.attachments = msg.attachments.split("\n");
+      if (msg.attachments && typeof msg.attachments === "string" && msg.attachments.length > 0) {
+        msg.attachments = [msg.attachments];
+      }
+      else if (!msg.attachments) {
+        msg.attachments = [];
       }
     });
 

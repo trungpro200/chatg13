@@ -158,6 +158,14 @@ export default function Message({
         // Now subscribe to realtime updates (await to ensure subscription is active)
         channelRef = await chatService.subscribeMessages(channelId, (msg) => {
           if (cancelled) return;
+          // BƯỚC CHUẨN HÓA TIN NHẮN REALTIME
+          if (typeof msg.attachments === "string" && msg.attachments.length > 0) {
+              msg.attachments = [msg.attachments];
+          } else if (!msg.attachments) {
+              msg.attachments = [];
+          }
+          // Kết thúc Chuẩn hóa
+
           // Only handle new/changed messages
           setMessages((prev) => {
             // prevent duplicates; if exists replace (update), otherwise append
@@ -229,10 +237,17 @@ export default function Message({
 
       newMsg.attachments = savedMsg.attachments; // cập nhật attachments nếu có
 
-      // Bỏ pending
-      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setUploadedFile(null);
+      // Cập nhật tin nhắn tạm với thông tin đính kèm đã chuẩn hóa (string[])
+      setPendingMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, attachments: savedMsg.attachments } : m                                                    
+        )
+      );
 
+      // Bỏ pending sau 3s
+      setTimeout(() => {
+         setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
+      }, 3000);
+
+      setUploadedFile(null);
       // fallback: sau 1s nếu subscription chưa add message thì tự thêm
       // setTimeout(() => {
       //   setMessages((prev) => {
