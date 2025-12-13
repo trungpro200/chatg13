@@ -51,6 +51,7 @@ export default function Message({
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
 
@@ -207,7 +208,7 @@ export default function Message({
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !channelId) return;
+    if (!channelId || (!input.trim() && !uploadedFile)) return;
 
     const tempId = `temp-${Date.now()}`;
     const newMsg: MessageType = {
@@ -245,9 +246,11 @@ export default function Message({
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
 
       setUploadedFile(null);
+      setPreviewUrl(null);
     } catch (err) {
       console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId)); // nếu fail thì bỏ pending
+      setPreviewUrl(null);
     }
   };
 
@@ -451,7 +454,7 @@ export default function Message({
                       Array.isArray(msg.attachments) &&
                       msg.attachments.map((att, idx) => (
                         <div key={idx} className="mt-2">
-                          <div className="relative w-full h-48 mt-2">
+                          <div className="relative max-w-[100%] h-auto mt-2">
                             <Image
                               src={
                                 supabase.storage
@@ -459,8 +462,10 @@ export default function Message({
                                   .getPublicUrl(att).data.publicUrl
                               }
                               alt="Attachment"
-                              className="rounded object-cover"
-                              fill
+                              className="rounded object-contain"
+                              width={2000}
+                              height={2000}
+                              style={{ width: '100%', height: 'auto' }}
                               sizes="(max-width: 768px) 100vw, 400px"
                             />
                           </div>
@@ -485,15 +490,34 @@ export default function Message({
         <footer className="p-4 border-t border-gray-700">
           <form onSubmit={handleSend} className="w-full flex flex-col gap-2">
             {uploadedFile && (
-              <div className="mb-2 p-2 bg-gray-800 text-gray-300 rounded flex items-center justify-between">
-                <span>{uploadedFile.name}</span>
-                <button onClick={() => setUploadedFile(null)}>
-                  <img
-                    src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png"
-                    alt="Cancel"
-                    className="w-5 h-5"
-                  />
-                </button>
+              <div className="mb-2 p-2 bg-gray-800 text-gray-300 rounded flex flex-col">
+
+                {previewUrl && uploadedFile.type.startsWith('image/') && (
+                  <div className="relative w-40 h-40 max-w-sm mb-3"> 
+                    <Image
+                      src={previewUrl}
+                      alt="Preview Attachment"
+                      className="rounded object-contain border border-gray-600"
+                      fill
+                      sizes="384px"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <span>
+                    {uploadedFile.name}
+                    {/* {uploadedFile.type.startsWith('image/') ? ' (Ảnh đã chọn)' : ' (File đã chọn)'} */}
+                  </span>
+                  <button onClick={() => {setUploadedFile(null); setPreviewUrl(null)}}>
+                    <img
+                      src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png"
+                      alt="Cancel"
+                      className="w-5 h-5"
+                    />
+                  </button>
+                </div>
+                
               </div>
             )}
 
@@ -503,7 +527,11 @@ export default function Message({
               className="hidden"
               onChange={(e) => {
                 if (e.target.files?.[0]) {
+                  const file = e.target.files[0];
                   setUploadedFile(e.target.files[0]);
+
+                  const url = URL.createObjectURL(file);
+                  setPreviewUrl(url);
                 }
               }}
             />
