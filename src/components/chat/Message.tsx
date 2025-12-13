@@ -241,24 +241,10 @@ export default function Message({
       setPendingMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, attachments: savedMsg.attachments } : m                                                    
         )
       );
-
-      // Bỏ pending sau 3s
-      setTimeout(() => {
-         setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
-      }, 3000);
+      // Bỏ pending
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId));
 
       setUploadedFile(null);
-      // fallback: sau 1s nếu subscription chưa add message thì tự thêm
-      // setTimeout(() => {
-      //   setMessages((prev) => {
-      //     const alreadyExists = prev.some((m) => m.id === savedMsg.id);
-      //     if (!alreadyExists) {
-      //       return [...prev, savedMsg];
-      //     }
-      //     return prev;
-      //   });
-      // }, 1000)
-      // setMessages((prev) => [...prev, savedMsg]);
     } catch (err) {
       console.error("Send failed", err); // Hiển thị lỗi khi tin nhắn không gửi được
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId)); // nếu fail thì bỏ pending
