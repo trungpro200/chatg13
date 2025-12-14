@@ -201,7 +201,13 @@ export default function UserProfile() {
             <textarea
               value={newBio}
               onChange={(e) => setNewBio(e.target.value)}
-              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              rows={3}
+              className="mt-2 w-full rounded-md border px-3 py-2 text-sm shadow-sm resize-none bg-white text-black focus:outline-none
+                focus:ring-2
+                focus:ring-ring
+                dark:bg-neutral-800
+                dark:text-white
+                dark:border-neutral-700"
             />
           )}
         </div>

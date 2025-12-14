@@ -19,7 +19,12 @@ type Props = {
   profile: Profile | null;
 };
 
-export default function UserProfileModal({ open, onClose, profile, loading }: Props) {
+export default function UserProfileModal({
+  open,
+  onClose,
+  profile,
+  loading,
+}: Props) {
   if (!open) return null;
 
   const getColorFromUsername = (username: string) => {
@@ -35,18 +40,19 @@ export default function UserProfileModal({ open, onClose, profile, loading }: Pr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-md bg-white text-black rounded-xl shadow-lg border relative animate-scaleIn p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/60 backdrop-blur-sm">
+      <div className="relative w-full max-w-md rounded-xl border border-gray-700 bg-gray-800 text-gray-100 shadow-xl animate-scaleIn p-6">
+        
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-2 rounded hover:bg-gray-200"
+          className="absolute top-3 right-3 p-2 rounded-md hover:bg-neutral-800"
         >
-          <X />
+          <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
-        <div className="flex flex-col items-center border-b border-gray-200 pb-4">
+        <div className="flex flex-col items-center border-b border-neutral-800 pb-4">
           <div
             className="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold text-white overflow-hidden"
             style={{
@@ -69,23 +75,25 @@ export default function UserProfileModal({ open, onClose, profile, loading }: Pr
           <h2 className="text-xl font-bold mt-4">
             {profile?.username || "User"}
           </h2>
-          <p className="text-sm text-gray-600">{profile?.email || "Unknown"}</p>
+          <p className="text-sm text-neutral-400">
+            {profile?.email || "Unknown"}
+          </p>
         </div>
 
         {/* Body */}
         <div className="pt-4 space-y-4 text-center">
           {loading ? (
-            <p className="text-gray-500">Loading profile...</p>
+            <p className="text-neutral-400">Loading profile...</p>
           ) : (
             <>
               <div>
-                <p className="text-sm font-semibold">Bio</p>
-                <p className="text-sm text-gray-700 mt-1">
+                <p className="text-sm font-semibold text-neutral-300">Bio</p>
+                <p className="text-sm text-neutral-400 mt-1">
                   {profile?.bio || "Chưa có bio"}
                 </p>
               </div>
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-neutral-500">
                 Tham gia: {profile ? formatJoined(profile.joined) : ""}
               </p>
             </>
