@@ -111,6 +111,7 @@ export default function UserProfile() {
       nickname: newUsername,
       bio: newBio,
       id: uid,
+      bio : newBio,
     });
 
     setEditing(false);
