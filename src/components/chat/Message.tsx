@@ -154,62 +154,47 @@ export default function Message({
   };
 
   const openUserProfile = async (uid: string) => {
-    setSelectedProfile(null);
-    setProfileLoading(true);
-    setProfileOpen(true); 
-    // console.log("Opening profile for user ID:", uid);
-    try {
-      const res = await supabase
-      .from("profiles")
-      .select("id, nickname, email, bio, created_at, avatar_URL")
-      .eq("id", uid)
-      .maybeSingle();
-      const data = res.data;
-      const error = res.error;
-      
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        // Nếu lỗi, set profile là null hoặc giá trị lỗi
-        setSelectedProfile({
-          id: uid,
-          username: "Lỗi tải dữ liệu",
-          email: "Vui lòng thử lại",
-          bio: "N/A",
-          joined: new Date().toISOString(),
-          avatar: undefined,
-        });
-        return;
-      }
-    // const error = res.error;
+  setProfileLoading(true);
+  setProfileOpen(true);
 
-    // if (error) {
-    //   console.error("Error fetching user profile:", error);
-    // }
+  const res = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", uid)
+    .maybeSingle();
+
+  const data = res.data;
+
+  if (!data) {
+    // Nếu chưa có row, tạo row mặc định
+    const { data: newData } = await supabase
+      .from("profiles")
+      .insert([{ id: uid, nickname: "User", email: "", bio: "", avatar_URL: "", created_at: new Date().toISOString() }])
+      .select()
+      .maybeSingle();
 
     setSelectedProfile({
-      id: uid,
-      username: data?.nickname || data?.email || "User",
-      email: data?.email || "unknown",
-      bio: data?.bio || "",
-      joined: data?.created_at || new Date().toISOString(),
-      avatar: data?.avatar_URL,
+      id: newData?.id || uid,
+      username: newData?.nickname || "User",
+      email: newData?.email || "unknown",
+      bio: newData?.bio || "Chưa có bio",
+      joined: newData?.created_at || new Date().toISOString(),
+      avatar: newData?.avatar_URL || "",
     });
-  } catch (e) {
-    console.error("Fetch profile failed:", e);
-      // Lỗi kết nối
-      setSelectedProfile({
-        id: uid,
-        username: "Lỗi kết nối",
-        email: "Không thể tải profile",
-        bio: "N/A",
-        joined: new Date().toISOString(),
-        avatar: undefined,
-      });
-    } finally {
-      // 3. Tắt loading
-      setProfileLoading(false);
+  } else {
+    setSelectedProfile({
+      id: data.id,
+      username: data.nickname || data.email || "User",
+      email: data.email || "unknown",
+      bio: data.bio || "Chưa có bio",
+      joined: data.created_at || new Date().toISOString(),
+      avatar: data.avatar_URL || "",
+    });
   }
+
+  setProfileLoading(false);
 };
+
 
   useEffect(() => {
     if (!channelId) return;
