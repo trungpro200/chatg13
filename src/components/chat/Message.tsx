@@ -154,16 +154,32 @@ export default function Message({
   };
 
   const openUserProfile = async (uid: string) => {
+    setSelectedProfile(null);
     setProfileLoading(true);
     setProfileOpen(true); 
     // console.log("Opening profile for user ID:", uid);
-    const res = await supabase
+    try {
+      const res = await supabase
       .from("profiles")
       .select("id, nickname, email, bio, created_at, avatar_URL")
       .eq("id", uid)
       .maybeSingle();
-
-    const data = res.data;
+      const data = res.data;
+      const error = res.error;
+      
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        // Nếu lỗi, set profile là null hoặc giá trị lỗi
+        setSelectedProfile({
+          id: uid,
+          username: "Lỗi tải dữ liệu",
+          email: "Vui lòng thử lại",
+          bio: "N/A",
+          joined: new Date().toISOString(),
+          avatar: undefined,
+        });
+        return;
+      }
     // const error = res.error;
 
     // if (error) {
@@ -178,8 +194,21 @@ export default function Message({
       joined: data?.created_at || new Date().toISOString(),
       avatar: data?.avatar_URL,
     });
-
-    setProfileLoading(false);
+  } catch (e) {
+    console.error("Fetch profile failed:", e);
+      // Lỗi kết nối
+      setSelectedProfile({
+        id: uid,
+        username: "Lỗi kết nối",
+        email: "Không thể tải profile",
+        bio: "N/A",
+        joined: new Date().toISOString(),
+        avatar: undefined,
+      });
+    } finally {
+      // 3. Tắt loading
+      setProfileLoading(false);
+  }
 };
 
   useEffect(() => {
