@@ -110,6 +110,7 @@ export default function UserProfile() {
     await supabase.from("profiles").upsert({
       nickname: newUsername,
       id: uid,
+      bio : newBio,
     });
 
     setEditing(false);
