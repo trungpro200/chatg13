@@ -7,6 +7,7 @@ import ContextMenu from "../ContextMenu";
 import { FaThumbtack } from "react-icons/fa6";
 import SearchBar from "./Searchbar";
 import Image from "next/image";
+import UserProfileModal from "../ui/UserProfileModal";
 
 type Props = {
   selectedChannel: string | null;
@@ -14,6 +15,14 @@ type Props = {
   setSelectedChannel: (channel: string) => void;
   showMembers: boolean;
   setShowMembers: (v: boolean) => void;
+};
+type Profile = {
+  id: string;
+  username: string;
+  email: string;
+  bio?: string;
+  joined: string;
+  avatar?: string;
 };
 
 function highlightText(text: string, keyword: string) {
@@ -54,6 +63,9 @@ export default function Message({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     // Fetch current user ID from Supabase session
@@ -101,6 +113,7 @@ export default function Message({
     setPinnedMsg([]);
     setSelectedChannel("Select a channel");
     console.log("Guild changed?");
+    console.log("Fetching profile for user ID:", userId);
   }, [selectedGuild]);
 
   useEffect(() => {
@@ -139,6 +152,35 @@ export default function Message({
     setAvatars((prev) => ({ ...prev, [userId]: data?.avatar_URL || "" }));
     return name;
   };
+
+  const openUserProfile = async (uid: string) => {
+    setProfileLoading(true);
+    setProfileOpen(true); 
+    // console.log("Opening profile for user ID:", uid);
+    const res = await supabase
+      .from("profiles")
+      .select("id, nickname, email, bio, created_at, avatar_URL")
+      .eq("id", uid)
+      .maybeSingle();
+
+    const data = res.data;
+    // const error = res.error;
+
+    // if (error) {
+    //   console.error("Error fetching user profile:", error);
+    // }
+
+    setSelectedProfile({
+      id: uid,
+      username: data?.nickname || data?.email || "User",
+      email: data?.email || "unknown",
+      bio: data?.bio || "",
+      joined: data?.created_at || new Date().toISOString(),
+      avatar: data?.avatar_URL,
+    });
+
+    setProfileLoading(false);
+};
 
   useEffect(() => {
     if (!channelId) return;
@@ -415,6 +457,13 @@ export default function Message({
               msgRefs.current[msg.id] = el;
             }}
             className="flex w-full justify-start"
+            onContextMenu={(e) => {
+              const target = e.target as HTMLElement;
+              if (!target.closest("img.avartar")) {
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY, message: msg });
+              }
+            }}
           >
             <div
               className={`relative p-3 rounded-md shadow-lg inline-block break-all whitespace-pre-wrap max-w-[70%] ${
@@ -436,7 +485,13 @@ export default function Message({
                       : `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author_id}`
                   }
                   alt="Avatar"
-                  className="w-8 h-8 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-blue-500"
+                  onClick={() => openUserProfile(msg.author_id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openUserProfile(msg.author_id);
+                  }}
                 />
 
                 <div className="flex-1 min-w-2xs">
@@ -703,6 +758,12 @@ export default function Message({
           maxWidth="300px"
         />
       )}
+        <UserProfileModal
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          profile={selectedProfile}
+          loading={profileLoading}
+        />
     </section>
   );
 }
