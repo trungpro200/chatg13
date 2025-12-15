@@ -1,10 +1,13 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Guild, Invite } from "./types";
 
+/*  GET INVITE  */
+
 export async function getGuildInvite(
   guild: Guild | null
 ): Promise<Invite | null> {
   if (!guild) return null;
+
   const { data, error } = await supabase
     .from("guild_invites")
     .select("*")
@@ -12,27 +15,28 @@ export async function getGuildInvite(
     .single();
 
   if (error) {
-    // Handle "no rows" error specifically
     if (error.code === "PGRST116") {
-      console.warn("No invite found");
-      return null;
+      return null; // No invite found
     }
-    // Re-throw or handle other errors
     throw error;
   }
 
   return data;
 }
 
+/*  CREATE INVITE  */
+
 export async function createInvite(
   guild: Guild | null
 ): Promise<Invite | null> {
-  //   alert("Creating invite..." + guild?.name);
   if (!guild) return null;
-  if (await getGuildInvite(guild)) {
+
+  const existed = await getGuildInvite(guild);
+  if (existed) {
     alert("You already have an invite to this guild.");
     return null;
   }
+
   const { data, error } = await supabase
     .from("guild_invites")
     .insert([{ guild_id: guild.id }])
@@ -47,25 +51,40 @@ export async function createInvite(
   return data;
 }
 
-export async function joinGuild(inviteId: string) {
+/* JOIN GUILD */
+
+export async function joinGuild(inviteId: string): Promise<number> {
+  // 🔹 Lấy user hiện tại
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("User not logged in");
+  }
+
+  // 🔹 Lấy guild_id từ invite
   const { data: guild_id, error } = await supabase.rpc("get_guild_id", {
     p_invite_code: inviteId,
   });
 
-  // console.log("Guild ID from invite:", guild_id);
-
-  if (error) {
-    console.error("Error fetching guild id:", error);
-    return;
+  if (error || !guild_id) {
+    throw new Error("Invalid invite code");
   }
 
-  // Successfully retrieved guild ID
-  try {
-    await supabase.from("guild_members").insert({
-      guild_id: guild_id,
+  // 🔹 Join guild
+  const { error: joinError } = await supabase
+    .from("guild_members")
+    .insert({
+      guild_id,
+      user_id: user.id,
       join_method: inviteId,
     });
-  } catch (error) {
-    console.error("Error adding user to guild:", error);
+
+  if (joinError) {
+    throw joinError;
   }
+
+  return guild_id;
 }
