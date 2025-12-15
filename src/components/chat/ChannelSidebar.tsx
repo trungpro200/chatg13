@@ -73,7 +73,15 @@ function AudioRenderer() {
   );
 }
 
-function VoiceAvatar({ user_id, mic_state }: { user_id: string; mic_state: boolean }) {
+function VoiceAvatar({
+  user_id,
+  mic_state,
+  speaking,
+}: {
+  user_id: string;
+  mic_state: boolean;
+  speaking: boolean;
+}) {
   const [profile, setProfile] = React.useState<Profile | null>(null);
 
   React.useEffect(() => {
@@ -104,7 +112,12 @@ function VoiceAvatar({ user_id, mic_state }: { user_id: string; mic_state: boole
       </span>
       {!mic_state && (
         <span className="pl-2 text-red-500">
-          <Mic size={15} strokeWidth={2}/>
+          <Mic size={15} strokeWidth={2} />
+        </span>
+      )}
+      {speaking && (
+        <span className="pl-2 text-green-500">
+          <Mic size={15} strokeWidth={2} />
         </span>
       )}
     </div>
@@ -118,7 +131,12 @@ function ParticipantsList() {
   return (
     <div className="space-y-1">
       {participants.map((p) => (
-        <VoiceAvatar key={p.identity} user_id={p.identity} mic_state={p.isMicrophoneEnabled} />
+        <VoiceAvatar
+          key={p.identity}
+          user_id={p.identity}
+          mic_state={p.isMicrophoneEnabled}
+          speaking={p.isSpeaking}
+        />
       ))}
     </div>
   );
