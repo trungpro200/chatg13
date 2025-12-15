@@ -347,7 +347,7 @@ export default function ChannelSidebar({
   );
 
   return (
-    <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll relative">
+    <aside className="h-full w-full bg-gray-800 p-4 relative flex flex-col">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
 
       {/* SEARCH BAR */}
@@ -357,80 +357,84 @@ export default function ChannelSidebar({
         placeholder="Search channels..."
         className="mb-3"
       />
+      <div className="flex-grow overflow-y-auto -mx-4 px-4 pb-4">
+        <ul className="space-y-1">
+          {/* --- TEXT CHANNELS --- */}
+          <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">
+            TEXT CHANNELS
+          </h4>
+          {text_Channels.length > 0 ? (
+            text_Channels.map((channel) => (
+              <li key={channel.id}>
+                <Channel_
+                  channel={channel}
+                  onSelectedChannel={handleSelectChannel}
+                  selectedChannel={selectedChannel}
+                  disabled={isLoading || isSwitchingChannel}
+                  search={search}
+                />
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-500 italic px-2">No text channels</li>
+          )}
 
-      <ul className="space-y-1">
-        {/* --- TEXT CHANNELS --- */}
-        <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">
-          TEXT CHANNELS
-        </h4>
-        {text_Channels.length > 0 ? (
-          text_Channels.map((channel) => (
-            <li key={channel.id}>
-              <Channel_
-                channel={channel}
-                onSelectedChannel={handleSelectChannel}
-                selectedChannel={selectedChannel}
-                disabled={isLoading || isSwitchingChannel}
-                search={search}
-              />
-            </li>
-          ))
-        ) : (
-          <li className="text-gray-500 italic px-2">No text channels</li>
+          {/* --- VOICE CHANNELS --- */}
+          <h4 className="text-gray-400 text-xs font-bold mt-4 mb-1 px-2">
+            VOICE CHANNELS
+          </h4>
+          {voice_Channels.length > 0 ? (
+            voice_Channels.map((channel) => (
+              <li key={channel.id}>
+                <Channel_
+                  channel={channel}
+                  onSelectedChannel={handleConnectVoiceChannel}
+                  selectedChannel={selectedChannel}
+                  disabled={isLoading || isSwitchingChannel}
+                  search={search}
+                />
+                {channel.id === roomID && connected && token && (
+                  <LiveKitRoom
+                    token={token}
+                    connect
+                    audio={true}
+                    video={false}
+                    serverUrl="wss://chatg13-nn8qevpo.livekit.cloud"
+                    onDisconnected={() => {
+                      console.log("Disconnected from Voice Room");
+                    }}
+                    onConnected={() => {
+                      console.log("Connected to VC");
+                      setMicOn(true);
+                    }}
+                  >
+                    {!deafenOn && <AudioRenderer />}
+
+                    <ParticipantsList />
+                  </LiveKitRoom>
+                )}
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-500 italic px-2">No voice channels</li>
+          )}
+        </ul>
+
+        {/* Form modal */}
+        {selectedGuild && (
+          <div className="mt-4">
+            <Button
+              onClick={() => setOpen(true)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              disabled={isLoading || isSwitchingChannel} // disable nút load
+            >
+              + Add Channel
+            </Button>
+          </div>
         )}
-
-        {/* --- VOICE CHANNELS --- */}
-        <h4 className="text-gray-400 text-xs font-bold mt-4 mb-1 px-2">
-          VOICE CHANNELS
-        </h4>
-        {voice_Channels.length > 0 ? (
-          voice_Channels.map((channel) => (
-            <li key={channel.id}>
-              <Channel_
-                channel={channel}
-                onSelectedChannel={handleConnectVoiceChannel}
-                selectedChannel={selectedChannel}
-                disabled={isLoading || isSwitchingChannel}
-                search={search}
-              />
-              {channel.id === roomID && connected && token && (
-                <LiveKitRoom
-                  token={token}
-                  connect
-                  audio={true}
-                  video={false}
-                  serverUrl="wss://chatg13-nn8qevpo.livekit.cloud"
-                  onDisconnected={() => {
-                    console.log("Disconnected from Voice Room");
-                  }}
-                  onConnected={() => {
-                    console.log("Connected to VC");
-                    setMicOn(true);
-                  }}
-                >
-                  {!deafenOn && <AudioRenderer />}
-
-                  <ParticipantsList />
-                </LiveKitRoom>
-              )}
-            </li>
-          ))
-        ) : (
-          <li className="text-gray-500 italic px-2">No voice channels</li>
-        )}
-      </ul>
-      {/* Form modal */}
-      {selectedGuild && (
-        <div className="mt-4">
-          <Button
-            onClick={() => setOpen(true)}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-            disabled={isLoading || isSwitchingChannel} // disable nút load
-          >
-            + Add Channel
-          </Button>
-        </div>
-      )}
+      </div>
+      
+      
 
       {/* Modal tạo channel */}
       <Dialog open={open} onOpenChange={setOpen}>
