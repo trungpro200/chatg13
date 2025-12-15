@@ -18,7 +18,7 @@ import SearchBar from "./Searchbar";
 
 type ChannelProps = {
   channel: Channel;
-  onSelectedChannel: (id: string ) => void;
+  onSelectedChannel: (id: string) => void;
   selectedChannel: string | null;
   disabled?: boolean;
   search: string;
@@ -30,7 +30,8 @@ type SidebarProps = {
   setSelectedChannel: (id: string | null) => void; //This shit referencing a useState Function
 };
 
-function highlightText(text: string, keyword: string) { //Highlight từ khóa được nhập
+function highlightText(text: string, keyword: string) {
+  //Highlight từ khóa được nhập
   if (!keyword.trim()) return text;
 
   const regex = new RegExp(`(${keyword})`, "gi");
@@ -57,14 +58,28 @@ function Channel_({
   const isActive = selectedChannel === channel.name;
   return (
     <div
-      className={`flex items-center justify-between group px-2 py-1 rounded ${disabled ? "opacity-50 cursor-not-allowed": "cursor-pointer"}
-    ${isActive && !disabled ? "bg-gray-600 text-white" : "hover:bg-gray-700 text-gray-300"}`}
+      className={`flex items-center justify-between group px-2 py-1 rounded ${
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      }
+    ${
+      isActive && !disabled
+        ? "bg-gray-600 text-white"
+        : "hover:bg-gray-700 text-gray-300"
+    }`}
     >
       <button
-        disabled = {disabled}
+        disabled={disabled}
         className="w-full flex items-center gap-2 text-left px-2 py-1 rounded text-gray-300
         disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        onClick={() => !disabled && onSelectedChannel(channel.name)} 
+        onClick={() => {
+          if (disabled) return;
+
+          if (channel.type === channel_types.VOICE) {
+            onSelectedChannel(channel.id); // Call voice channel handler (voice handler needs channel id)
+          } else {
+            onSelectedChannel(channel.name); // Call text channel handler
+          }
+        }}
       >
         {channel.type === channel_types.TEXT ? (
           <span className="text-gray-400">
@@ -73,15 +88,14 @@ function Channel_({
         ) : (
           <Mic size={15} className="text-gray-400" />
         )}
-        <span className="truncate">
-          {highlightText(channel.name, search)}
-        </span>
+        <span className="truncate">{highlightText(channel.name, search)}</span>
       </button>
 
       {/* {Icon Settings} */}
-      <button 
-        disabled = {disabled}
-        className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white disabled:opacity-0">
+      <button
+        disabled={disabled}
+        className="opacity-0 group-hover:opacity-100 transition p-1 hover:text-white disabled:opacity-0"
+      >
         <Settings size={15} />
       </button>
     </div>
@@ -103,6 +117,7 @@ export default function ChannelSidebar({
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitchingChannel, setIsSwitchingChannel] = useState(false); // added
   const [search, setSearch] = useState("");
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -120,8 +135,7 @@ export default function ChannelSidebar({
         console.error("Error fetching channels:", error);
         setChannels([]);
         return;
-      }
-      else {
+      } else {
         setChannels(data || []);
       }
       setIsLoading(false);
@@ -163,7 +177,25 @@ export default function ChannelSidebar({
     setIsSwitchingChannel(true); // Bắt đầu quá trình chuyển kênh.
     setSelectedChannel(channelId);
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
-  }
+  };
+
+  const handleConnectVoiceChannel = async (channelId: string) => {
+    if (isSwitchingChannel) return; // chặn spam.
+    setIsSwitchingChannel(true);
+
+    // Get token from backend
+    const test = await fetch("/api/livekit/voicetoken", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        room: channelId,
+      }),
+    }).then(async (res) => await res.json());
+
+    console.log(test);
+
+    setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
+  };
 
   // Lọc kênh theo từ khóa tìm kiếm
   const filtered = channels.filter((ch) =>
@@ -171,18 +203,27 @@ export default function ChannelSidebar({
   );
 
   const text_Channels = filtered.filter((ch) => ch.type === channel_types.TEXT);
-  const voice_Channels = filtered.filter((ch) => ch.type === channel_types.VOICE);
+  const voice_Channels = filtered.filter(
+    (ch) => ch.type === channel_types.VOICE
+  );
 
   return (
     <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
 
       {/* SEARCH BAR */}
-      <SearchBar value={search} onChange={setSearch} placeholder="Search channels..." className="mb-3"/>
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search channels..."
+        className="mb-3"
+      />
 
       <ul className="space-y-1">
         {/* --- TEXT CHANNELS --- */}
-        <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">TEXT CHANNELS</h4>
+        <h4 className="text-gray-400 text-xs font-bold mt-2 mb-1 px-2">
+          TEXT CHANNELS
+        </h4>
         {text_Channels.length > 0 ? (
           text_Channels.map((channel) => (
             <li key={channel.id}>
@@ -200,13 +241,15 @@ export default function ChannelSidebar({
         )}
 
         {/* --- VOICE CHANNELS --- */}
-        <h4 className="text-gray-400 text-xs font-bold mt-4 mb-1 px-2">VOICE CHANNELS</h4>
+        <h4 className="text-gray-400 text-xs font-bold mt-4 mb-1 px-2">
+          VOICE CHANNELS
+        </h4>
         {voice_Channels.length > 0 ? (
           voice_Channels.map((channel) => (
             <li key={channel.id}>
               <Channel_
                 channel={channel}
-                onSelectedChannel={handleSelectChannel}
+                onSelectedChannel={handleConnectVoiceChannel}
                 selectedChannel={selectedChannel}
                 disabled={isLoading || isSwitchingChannel}
                 search={search}
