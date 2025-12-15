@@ -290,6 +290,23 @@ export default function ChannelSidebar({
                 disabled={isLoading || isSwitchingChannel}
                 search={search}
               />
+              {channel.id === roomID && connected && token && (
+                <LiveKitRoom
+                  token={token}
+                  connect
+                  audio={true}
+                  video={false}
+                  serverUrl="wss://chatg13-nn8qevpo.livekit.cloud"
+                  onDisconnected={() => {
+                    console.log("Disconnected from Voice Room");
+                  }}
+                  onConnected={() => {
+                    console.log("Connected to VC");
+                  }}
+                >
+                  <AudioRenderer />
+                </LiveKitRoom>
+              )}
             </li>
           ))
         ) : (
@@ -368,23 +385,7 @@ export default function ChannelSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {connected && token && (
-        <LiveKitRoom
-          token={token}
-          connect
-          audio={true}
-          video={false}
-          serverUrl="wss://chatg13-nn8qevpo.livekit.cloud"
-          onDisconnected={() => {
-            console.log("Disconnected from Voice Room");
-          }}
-          onConnected={() => {
-            console.log("Connected to VC");
-          }}
-        >
-          <AudioRenderer />
-        </LiveKitRoom>
-      )}
+      {connected && token && <>{/* Placeholder for voice board */}</>}
     </aside>
   );
 }
