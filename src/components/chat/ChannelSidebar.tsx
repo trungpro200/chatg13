@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Guild } from "@/utils/guild/types";
 import {
@@ -126,6 +126,8 @@ export default function ChannelSidebar({
   selectedChannel,
   setSelectedChannel,
 }: SidebarProps) {
+  const [voiceBoardHeight, setVoiceBoardHeight] = useState(0);
+  const voiceBoardRef = useRef<HTMLDivElement>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelName, setNewChannelName] = useState("");
   const [open, setOpen] = useState(false); // state mở modal
@@ -164,6 +166,17 @@ export default function ChannelSidebar({
 
     fetchChannels();
   }, [selectedGuild]);
+
+  useEffect(() => {
+    if (connected && voiceBoardRef.current) {
+      // Nếu kết nối và ref đã tồn tại, đo chiều cao và set state
+      const height = voiceBoardRef.current.offsetHeight;
+      setVoiceBoardHeight(height);
+    } else {
+      // Nếu ngắt kết nối, reset chiều cao về 0
+      setVoiceBoardHeight(0);
+    }
+  }, [connected]);
   const handleAddChannel = async () => {
     if (!selectedGuild || !newChannelName.trim()) return;
 
@@ -233,6 +246,12 @@ export default function ChannelSidebar({
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
   };
 
+  const handleDisconnect = () => {
+    setConnected(false);
+    setRoomID(null);
+    setToken(null);
+  };
+
   // Lọc kênh theo từ khóa tìm kiếm
   const filtered = channels.filter((ch) =>
     ch.name.toLowerCase().includes(search.toLowerCase())
@@ -244,7 +263,7 @@ export default function ChannelSidebar({
   );
 
   return (
-    <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll">
+    <aside className="h-full w-full bg-gray-800 p-4 overflow-y-scroll relative">
       <h3 className="text-md font-bold mb-2">{selectedGuild?.name}</h3>
 
       {/* SEARCH BAR */}
@@ -385,7 +404,40 @@ export default function ChannelSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {connected && token && <>{/* Placeholder for voice board */}</>}
+      {connected && token && (<div ref={voiceBoardRef} className="sticky bottom-0 pt-4">
+        <div className="w-full bg-gray-900 border-t border-gray-700 p-3 flex flex-col gap-2 rounded-2xl">
+          {/* Status Bar */}
+          <div className="flex items-center gap-2">
+            <Mic size={18} className="text-green-500" />
+            <span className="text-sm font-semibold text-white truncate">
+              Connected to: {channels.find(c => c.id === roomID)?.name || 'Voice Channel'}
+            </span>
+          </div>
+
+          {/* Nút Disconnect */}
+          <Button
+            onClick={handleDisconnect} // Sử dụng hàm Disconnect mới
+            className="w-full bg-red-600 hover:bg-red-700 text-white flex gap-2"
+          >
+            <img src="https://img.icons8.com/material-rounded/24/FFFFFF/phone-disconnected.png" alt="Disconnect" className="w-5 h-5" />
+            Disconnect
+          </Button>
+
+          <div className="flex gap-2">
+            {/* Nút Mute*/}
+            <Button
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white p-2 h-10">
+              <Mic size={20} />
+            </Button>
+            {/* Nút Deafen*/}
+            <Button
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white p-2 h-10"
+            >
+              <img src="https://img.icons8.com/material-rounded/24/FFFFFF/headphones.png" alt="Deafen" className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>)}
     </aside>
   );
 }
