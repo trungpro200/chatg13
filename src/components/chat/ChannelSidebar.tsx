@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, use } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Guild } from "@/utils/guild/types";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Mic, Check, Search } from "lucide-react";
+import { Settings, Mic, Check, Search, Headphones } from "lucide-react";
 import { BsChatFill } from "react-icons/bs";
 import { channel_types, Channel } from "@/utils/guild/types";
 import SearchBar from "./Searchbar";
@@ -26,6 +26,8 @@ import {
 } from "@livekit/components-react";
 import { LocalParticipant, Track } from "livekit-client";
 import { getProfileById, Profile } from "@/utils/guild/Profile";
+
+let localParticipant: LocalParticipant | null = null;
 
 type ChannelProps = {
   channel: Channel;
@@ -71,7 +73,7 @@ function AudioRenderer() {
   );
 }
 
-function VoiceAvatar({ user_id }: { user_id: string }) {
+function VoiceAvatar({ user_id, mic_state }: { user_id: string; mic_state: boolean }) {
   const [profile, setProfile] = React.useState<Profile | null>(null);
 
   React.useEffect(() => {
@@ -83,9 +85,7 @@ function VoiceAvatar({ user_id }: { user_id: string }) {
   }, [user_id]);
 
   if (!profile) {
-    return (
-      <div className="w-6 h-6 rounded-full bg-gray-500 block"></div>
-    );
+    return <div className="w-6 h-6 rounded-full bg-gray-500 block"></div>;
   }
 
   const avatarUrl =
@@ -93,24 +93,32 @@ function VoiceAvatar({ user_id }: { user_id: string }) {
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user_id}`;
 
   return (
-    <div className="pl-9">
+    <div className="pl-9 flex items-center">
       <img
         src={avatarUrl}
         alt="Avatar"
         className="w-6 h-6 rounded-full inline"
       />
-      <span className="pl-3">{profile.nickname ? profile.nickname : profile.email}</span>
+      <span className="pl-3 flex-grow truncate">
+        {profile.nickname ? profile.nickname : profile.email}
+      </span>
+      {!mic_state && (
+        <span className="pl-2 text-red-500">
+          <Mic size={15} strokeWidth={2}/>
+        </span>
+      )}
     </div>
   );
 }
 
 function ParticipantsList() {
   const participants = useParticipants();
+  localParticipant = useLocalParticipant().localParticipant;
 
   return (
     <div className="space-y-1">
       {participants.map((p) => (
-        <VoiceAvatar key={p.identity} user_id={p.identity} />
+        <VoiceAvatar key={p.identity} user_id={p.identity} mic_state={p.isMicrophoneEnabled} />
       ))}
     </div>
   );
@@ -190,6 +198,8 @@ export default function ChannelSidebar({
   const [connected, setConnected] = useState(false);
   const [roomID, setRoomID] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [micOn, setMicOn] = useState(true);
+  const [deafenOn, setDeafenOn] = useState(false);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -288,6 +298,12 @@ export default function ChannelSidebar({
       }),
     }).then(async (res) => await res.json());
 
+    if (!res.token) {
+      console.error("Failed to get LiveKit token");
+      setIsSwitchingChannel(false);
+      return;
+    }
+
     setToken(res.token);
     setConnected(true);
     setRoomID(channelId);
@@ -299,6 +315,7 @@ export default function ChannelSidebar({
     setConnected(false);
     setRoomID(null);
     setToken(null);
+    localParticipant = null;
   };
 
   // Lọc kênh theo từ khóa tìm kiếm
@@ -370,9 +387,10 @@ export default function ChannelSidebar({
                   }}
                   onConnected={() => {
                     console.log("Connected to VC");
+                    setMicOn(true);
                   }}
                 >
-                  <AudioRenderer />
+                  {!deafenOn && <AudioRenderer />}
 
                   <ParticipantsList />
                 </LiveKitRoom>
@@ -455,40 +473,48 @@ export default function ChannelSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {connected && token && (<div ref={voiceBoardRef} className="sticky bottom-0 pt-4">
-        <div className="w-full bg-gray-900 border-t border-gray-700 p-3 flex flex-col gap-2 rounded-2xl">
-          {/* Status Bar */}
-          <div className="flex items-center gap-2">
-            <Mic size={18} className="text-green-500" />
-            <span className="text-sm font-semibold text-white truncate">
-              Connected to: {channels.find(c => c.id === roomID)?.name || 'Voice Channel'}
-            </span>
-          </div>
+      {connected && token && (
+        <div ref={voiceBoardRef} className="sticky bottom-0 pt-4">
+          <div className="w-full bg-gray-900 border-t border-gray-700 p-3 flex flex-col gap-2 rounded-2xl">
+            {/* Status Bar */}
+            <div className="flex items-center gap-2">
+              <Mic size={18} className="text-green-500" />
+              <span className="text-sm font-semibold text-white truncate">
+                Connected to:{" "}
+                {channels.find((c) => c.id === roomID)?.name || "Voice Channel"}
+              </span>
+            </div>
 
-          {/* Nút Disconnect */}
-          <Button
-            onClick={handleDisconnect} // Sử dụng hàm Disconnect mới
-            className="w-full bg-red-600 hover:bg-red-700 text-white flex gap-2"
-          >
-            <img src="https://img.icons8.com/material-rounded/24/FFFFFF/phone-disconnected.png" alt="Disconnect" className="w-5 h-5" />
-            Disconnect
-          </Button>
-
-          <div className="flex gap-2">
-            {/* Nút Mute*/}
+            {/* Nút Disconnect */}
             <Button
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white p-2 h-10">
-              <Mic size={20} />
-            </Button>
-            {/* Nút Deafen*/}
-            <Button
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white p-2 h-10"
+              onClick={handleDisconnect} // Sử dụng hàm Disconnect mới
+              className="w-full bg-red-600 hover:bg-red-700 text-white flex gap-2"
             >
-              <img src="https://img.icons8.com/material-rounded/24/FFFFFF/headphones.png" alt="Deafen" className="w-5 h-5" />
+              <img
+                src="https://img.icons8.com/material-rounded/24/FFFFFF/phone-disconnected.png"
+                alt="Disconnect"
+                className="w-5 h-5"
+              />
+              Disconnect
             </Button>
+
+            <div className="flex gap-2">
+              {/* Nút Mute*/}
+              <Button
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white p-2 h-10"
+                onClick={() => {
+                  setMicOn(!micOn);
+                  if (localParticipant) {
+                    localParticipant.setMicrophoneEnabled(!micOn);
+                  }
+                }}
+              >
+                <Mic size={20} color={micOn ? "white" : "red"} />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>)}
+      )}
     </aside>
   );
 }
