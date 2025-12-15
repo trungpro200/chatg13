@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -20,8 +21,11 @@ import {
   useTracks,
   AudioTrack,
   TrackReference,
+  useParticipants,
+  useLocalParticipant,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { LocalParticipant, Track } from "livekit-client";
+import { getProfileById, Profile } from "@/utils/guild/Profile";
 
 type ChannelProps = {
   channel: Channel;
@@ -64,6 +68,51 @@ function AudioRenderer() {
         <AudioTrack key={track.publication.trackSid} trackRef={track} />
       ))}
     </>
+  );
+}
+
+function VoiceAvatar({ user_id }: { user_id: string }) {
+  const [profile, setProfile] = React.useState<Profile | null>(null);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      const profileData = await getProfileById(user_id);
+      setProfile(profileData);
+    };
+    fetchProfile();
+  }, [user_id]);
+
+  if (!profile) {
+    return (
+      <div className="w-6 h-6 rounded-full bg-gray-500 block"></div>
+    );
+  }
+
+  const avatarUrl =
+    profile.avatar_URL ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${user_id}`;
+
+  return (
+    <div className="pl-9">
+      <img
+        src={avatarUrl}
+        alt="Avatar"
+        className="w-6 h-6 rounded-full inline"
+      />
+      <span className="pl-3">{profile.nickname ? profile.nickname : profile.email}</span>
+    </div>
+  );
+}
+
+function ParticipantsList() {
+  const participants = useParticipants();
+
+  return (
+    <div className="space-y-1">
+      {participants.map((p) => (
+        <VoiceAvatar key={p.identity} user_id={p.identity} />
+      ))}
+    </div>
   );
 }
 
@@ -324,6 +373,8 @@ export default function ChannelSidebar({
                   }}
                 >
                   <AudioRenderer />
+
+                  <ParticipantsList />
                 </LiveKitRoom>
               )}
             </li>
