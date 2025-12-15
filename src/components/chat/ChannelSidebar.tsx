@@ -15,6 +15,13 @@ import { Settings, Mic, Check, Search } from "lucide-react";
 import { BsChatFill } from "react-icons/bs";
 import { channel_types, Channel } from "@/utils/guild/types";
 import SearchBar from "./Searchbar";
+import {
+  LiveKitRoom,
+  useTracks,
+  AudioTrack,
+  TrackReference,
+} from "@livekit/components-react";
+import { Track } from "livekit-client";
 
 type ChannelProps = {
   channel: Channel;
@@ -45,6 +52,18 @@ function highlightText(text: string, keyword: string) {
     ) : (
       <span key={i}>{part}</span>
     )
+  );
+}
+
+function AudioRenderer() {
+  const tracks = useTracks([Track.Source.Microphone]);
+
+  return (
+    <>
+      {tracks.map((track) => (
+        <AudioTrack key={track.publication.trackSid} trackRef={track} />
+      ))}
+    </>
   );
 }
 
@@ -118,6 +137,8 @@ export default function ChannelSidebar({
   const [isSwitchingChannel, setIsSwitchingChannel] = useState(false); // added
   const [search, setSearch] = useState("");
   const [connected, setConnected] = useState(false);
+  const [roomID, setRoomID] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -180,11 +201,24 @@ export default function ChannelSidebar({
   };
 
   const handleConnectVoiceChannel = async (channelId: string) => {
+    if (channelId == roomID && connected) {
+      // Disconnect from the current room
+      setConnected(false);
+      setRoomID(null);
+      return;
+    }
+
+    if (connected && channelId !== roomID) {
+      // Nếu đã kết nối với một phòng khác, ngắt kết nối trước
+      setConnected(false);
+      setRoomID(null);
+    }
+
     if (isSwitchingChannel) return; // chặn spam.
     setIsSwitchingChannel(true);
 
     // Get token from backend
-    const test = await fetch("/api/livekit/voicetoken", {
+    const res = await fetch("/api/livekit/voicetoken", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -192,7 +226,9 @@ export default function ChannelSidebar({
       }),
     }).then(async (res) => await res.json());
 
-    console.log(test);
+    setToken(res.token);
+    setConnected(true);
+    setRoomID(channelId);
 
     setTimeout(() => setIsSwitchingChannel(false), 500); // sau 500ms thì cho phép chuyển kênh tiếp.
   };
@@ -332,6 +368,23 @@ export default function ChannelSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {connected && token && (
+        <LiveKitRoom
+          token={token}
+          connect
+          audio={true}
+          video={false}
+          serverUrl="wss://chatg13-nn8qevpo.livekit.cloud"
+          onDisconnected={() => {
+            console.log("Disconnected from Voice Room");
+          }}
+          onConnected={() => {
+            console.log("Connected to VC");
+          }}
+        >
+          <AudioRenderer />
+        </LiveKitRoom>
+      )}
     </aside>
   );
 }

@@ -11,10 +11,6 @@ async function checkChannelAccess(
   identity: string,
   supabase: SupabaseClient
 ) {
-  // Placeholder for access control logic
-  // You can implement your own logic to check if the user has access to the room
-  console.log("Checking access for user", identity, "to room", room);
-
   const server_id = await supabase
     .from("channels")
     .select("guild_id")
@@ -28,8 +24,6 @@ async function checkChannelAccess(
     .eq("user_id", identity)
     .single();
 
-  console.log(server_id);
-  console.log("Membership check result:", is_member);
   return is_member.data != null;
 }
 
@@ -104,11 +98,11 @@ export async function POST(req: Request) {
 
     token.addGrant({
       roomJoin: true,
-      room: room as string,
+      room: `vc-${room}`,
       canPublish: true,
       canSubscribe: true,
     });
-    
+
     const jwt = await token.toJwt();
 
     return NextResponse.json(
