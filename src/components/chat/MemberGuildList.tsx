@@ -9,6 +9,7 @@ type Props = {
 type MemberProfile = {
   id: string;
   email: string;
+  avatar: string;
 };
 
 export default function MemberGuildList({ selectedGuild }: Props) {
@@ -73,7 +74,7 @@ export default function MemberGuildList({ selectedGuild }: Props) {
 
       const { data: profiles, error: pError } = await supabase
         .from("profiles")
-        .select("id, email")
+        .select("id, email, avatar_URL")
         .in("id", ids);
 
       if (pError || !profiles) {
@@ -86,11 +87,15 @@ export default function MemberGuildList({ selectedGuild }: Props) {
 
       // Tách owner ra khỏi members
       let foundOwner: MemberProfile | null = null;
-      let restMembers: MemberProfile[] = profiles;
+      let restMembers: MemberProfile[] = profiles.map(p => ({
+        id: p.id,
+        email: p.email,
+        avatar: p.avatar_URL || "",
+      }));
 
       if (ownerId) {
-        foundOwner = profiles.find((p) => p.id === ownerId) || null;
-        restMembers = profiles.filter((p) => p.id !== ownerId);
+        foundOwner = restMembers.find((p) => p.id === ownerId) || null;
+        restMembers = restMembers.filter((p) => p.id !== ownerId);
       }
 
       setOwner(foundOwner);
@@ -115,9 +120,13 @@ export default function MemberGuildList({ selectedGuild }: Props) {
                 Owner
               </h4>
               <div className="flex items-center gap-2 p-2 rounded bg-gray-800">
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-600">
-                  {owner.email[0]?.toUpperCase() || "U"}
-                </div>
+                {owner.avatar ? (
+                  // THÊM: Hiển thị avatar nếu có URL
+                  <img src={owner.avatar} alt={`${owner.email}'s avatar`} className="w-8 h-8 rounded-full object-cover"/>
+                ) : (
+                  // THAY THẾ: Hiển thị avatar mặc định (hoặc chữ cái)
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${owner.id}`} alt="Default Avatar" className="w-8 h-8 rounded-full object-cover"/>
+                )}
                 <span>{owner.email}</span>
               </div>
             </div>
@@ -133,9 +142,13 @@ export default function MemberGuildList({ selectedGuild }: Props) {
                 key={m.id}
                 className="flex items-center gap-2 p-2 rounded hover:bg-gray-700"
               >
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-600">
-                  {m.email[0]?.toUpperCase() || "U"}
-                </div>
+                {m.avatar ? (
+                  // THÊM: Hiển thị avatar nếu có URL
+                  <img src={m.avatar} alt={`${m.email}'s avatar`} className="w-8 h-8 rounded-full object-cover"/>
+                ) : (
+                  // THAY THẾ: Hiển thị avatar mặc định (hoặc chữ cái)
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} alt="Default Avatar" className="w-8 h-8 rounded-full object-cover"/>
+                )}
                 <span>{m.email}</span>
               </li>
             ))}
