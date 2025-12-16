@@ -35,7 +35,7 @@ class ChatService {
 
       const { data, error } = await supabase.storage
         .from("attachments")
-        .upload(attachmentId, uploadedFile);
+        .upload(attachmentId + " " + uploadedFile.name, uploadedFile);
       if (error) {
         console.error("File upload error:", error);
         throw new Error(error.message);
@@ -49,7 +49,7 @@ class ChatService {
         channel_id: channelId,
         content,
         author_id: session.user.id,
-        attachments: attachmentId,
+        attachments: attachmentId + " " + uploadedFile?.name || null,
       })
       .select("*, profiles(email)")
       .single();
@@ -60,11 +60,14 @@ class ChatService {
     }
     //return data as Message;
     const savedMessage = data as Message;
-    if (typeof savedMessage.attachments === "string" && savedMessage.attachments.length > 0) {
+    if (
+      typeof savedMessage.attachments === "string" &&
+      savedMessage.attachments.length > 0
+    ) {
       savedMessage.attachments = [savedMessage.attachments];
     } else {
-        // Nếu null/undefined/chuỗi rỗng, đặt là mảng rỗng
-        savedMessage.attachments = [];
+      // Nếu null/undefined/chuỗi rỗng, đặt là mảng rỗng
+      savedMessage.attachments = [];
     }
     return savedMessage; // Trả về message đã chuẩn hóa attachments: string[]
   }
@@ -85,10 +88,13 @@ class ChatService {
 
     //Reformat attachments from string to array
     data?.forEach((msg) => {
-      if (msg.attachments && typeof msg.attachments === "string" && msg.attachments.length > 0) {
+      if (
+        msg.attachments &&
+        typeof msg.attachments === "string" &&
+        msg.attachments.length > 0
+      ) {
         msg.attachments = [msg.attachments];
-      }
-      else if (!msg.attachments) {
+      } else if (!msg.attachments) {
         msg.attachments = [];
       }
     });

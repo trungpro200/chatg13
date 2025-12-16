@@ -8,6 +8,7 @@ import { FaThumbtack } from "react-icons/fa6";
 import SearchBar from "./Searchbar";
 import Image from "next/image";
 import UserProfileModal from "../ui/UserProfileModal";
+import Attachment from "./Attachment";
 
 type Props = {
   selectedChannel: string | null;
@@ -154,47 +155,55 @@ export default function Message({
   };
 
   const openUserProfile = async (uid: string) => {
-  setProfileLoading(true);
-  setProfileOpen(true);
+    setProfileLoading(true);
+    setProfileOpen(true);
 
-  const res = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", uid)
-    .maybeSingle();
-
-  const data = res.data;
-
-  if (!data) {
-    // Nếu chưa có row, tạo row mặc định
-    const { data: newData } = await supabase
+    const res = await supabase
       .from("profiles")
-      .insert([{ id: uid, nickname: "User", email: "", bio: "", avatar_URL: "", created_at: new Date().toISOString() }])
-      .select()
+      .select("*")
+      .eq("id", uid)
       .maybeSingle();
 
-    setSelectedProfile({
-      id: newData?.id || uid,
-      username: newData?.nickname || "User",
-      email: newData?.email || "unknown",
-      bio: newData?.bio || "Chưa có bio",
-      joined: newData?.created_at || new Date().toISOString(),
-      avatar: newData?.avatar_URL || "",
-    });
-  } else {
-    setSelectedProfile({
-      id: data.id,
-      username: data.nickname || data.email || "User",
-      email: data.email || "unknown",
-      bio: data.bio || "Chưa có bio",
-      joined: data.created_at || new Date().toISOString(),
-      avatar: data.avatar_URL || "",
-    });
-  }
+    const data = res.data;
 
-  setProfileLoading(false);
-};
+    if (!data) {
+      // Nếu chưa có row, tạo row mặc định
+      const { data: newData } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            id: uid,
+            nickname: "User",
+            email: "",
+            bio: "",
+            avatar_URL: "",
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .maybeSingle();
 
+      setSelectedProfile({
+        id: newData?.id || uid,
+        username: newData?.nickname || "User",
+        email: newData?.email || "unknown",
+        bio: newData?.bio || "Chưa có bio",
+        joined: newData?.created_at || new Date().toISOString(),
+        avatar: newData?.avatar_URL || "",
+      });
+    } else {
+      setSelectedProfile({
+        id: data.id,
+        username: data.nickname || data.email || "User",
+        email: data.email || "unknown",
+        bio: data.bio || "Chưa có bio",
+        joined: data.created_at || new Date().toISOString(),
+        avatar: data.avatar_URL || "",
+      });
+    }
+
+    setProfileLoading(false);
+  };
 
   useEffect(() => {
     if (!channelId) return;
@@ -216,10 +225,13 @@ export default function Message({
         channelRef = await chatService.subscribeMessages(channelId, (msg) => {
           if (cancelled) return;
           // BƯỚC CHUẨN HÓA TIN NHẮN REALTIME
-          if (typeof msg.attachments === "string" && msg.attachments.length > 0) {
-              msg.attachments = [msg.attachments];
+          if (
+            typeof msg.attachments === "string" &&
+            msg.attachments.length > 0
+          ) {
+            msg.attachments = [msg.attachments];
           } else if (!msg.attachments) {
-              msg.attachments = [];
+            msg.attachments = [];
           }
           // Kết thúc Chuẩn hóa
 
@@ -295,7 +307,9 @@ export default function Message({
       newMsg.attachments = savedMsg.attachments; // cập nhật attachments nếu có
 
       // Cập nhật tin nhắn tạm với thông tin đính kèm đã chuẩn hóa (string[])
-      setPendingMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, attachments: savedMsg.attachments } : m                                                    
+      setPendingMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, attachments: savedMsg.attachments } : m
         )
       );
       // Bỏ pending
@@ -524,7 +538,7 @@ export default function Message({
                       msg.attachments.map((att, idx) => (
                         <div key={idx} className="mt-2">
                           <div className="relative max-w-[100%] h-auto mt-2">
-                            <Image
+                            {/* <Image
                               src={
                                 supabase.storage
                                   .from("attachments")
@@ -536,6 +550,13 @@ export default function Message({
                               height={2000}
                               style={{ width: '100%', height: 'auto' }}
                               sizes="(max-width: 768px) 100vw, 400px"
+                            /> */}
+                            <Attachment
+                              url={
+                                supabase.storage
+                                  .from("attachments")
+                                  .getPublicUrl(att).data.publicUrl
+                              }
                             />
                           </div>
                         </div>
@@ -560,9 +581,8 @@ export default function Message({
           <form onSubmit={handleSend} className="w-full flex flex-col gap-2">
             {uploadedFile && (
               <div className="mb-2 p-2 bg-gray-800 text-gray-300 rounded flex flex-col">
-
-                {previewUrl && uploadedFile.type.startsWith('image/') && (
-                  <div className="relative w-40 h-40 max-w-sm mb-3"> 
+                {previewUrl && uploadedFile.type.startsWith("image/") && (
+                  <div className="relative w-40 h-40 max-w-sm mb-3">
                     <Image
                       src={previewUrl}
                       alt="Preview Attachment"
@@ -572,13 +592,18 @@ export default function Message({
                     />
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between">
                   <span>
                     {uploadedFile.name}
                     {/* {uploadedFile.type.startsWith('image/') ? ' (Ảnh đã chọn)' : ' (File đã chọn)'} */}
                   </span>
-                  <button onClick={() => {setUploadedFile(null); setPreviewUrl(null)}}>
+                  <button
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setPreviewUrl(null);
+                    }}
+                  >
                     <img
                       src="https://img.icons8.com/material-rounded/24/EBEBEB/cancel--v1.png"
                       alt="Cancel"
@@ -586,7 +611,6 @@ export default function Message({
                     />
                   </button>
                 </div>
-                
               </div>
             )}
 
@@ -772,12 +796,12 @@ export default function Message({
           maxWidth="300px"
         />
       )}
-        <UserProfileModal
-          open={profileOpen}
-          onClose={() => setProfileOpen(false)}
-          profile={selectedProfile}
-          loading={profileLoading}
-        />
+      <UserProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        profile={selectedProfile}
+        loading={profileLoading}
+      />
     </section>
   );
 }
