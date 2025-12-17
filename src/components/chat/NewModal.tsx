@@ -52,11 +52,11 @@ const NewModal: React.FC<NewModalProps> = ({
     try {
       await joinGuild(inviteCode);
 
-      // ✅ đóng modal
+      // đóng modal
       setIsOpen(false);
       setMode(null);
 
-      // ✅ reload guild list (KHÔNG F5)
+      // reload guild list 
       router.refresh();
     } catch (err) {
       console.error(err);

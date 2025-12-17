@@ -127,7 +127,7 @@ class ChatService {
     const maxAttempts = 3;
     const baseDelay = 200; // ms
 
-    // 🔑 Ensure session (access token) is ready before subscribing
+    // Ensure session (access token) is ready before subscribing
     let {
       data: { session },
     } = await supabase.auth.getSession();

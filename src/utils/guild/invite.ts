@@ -54,7 +54,7 @@ export async function createInvite(
 /* JOIN GUILD */
 
 export async function joinGuild(inviteId: string): Promise<number> {
-  // 🔹 Lấy user hiện tại
+  // Lấy user hiện tại
   const {
     data: { user },
     error: userError,
@@ -64,7 +64,7 @@ export async function joinGuild(inviteId: string): Promise<number> {
     throw new Error("User not logged in");
   }
 
-  // 🔹 Lấy guild_id từ invite
+  // Lấy guild_id từ invite
   const { data: guild_id, error } = await supabase.rpc("get_guild_id", {
     p_invite_code: inviteId,
   });
@@ -73,7 +73,7 @@ export async function joinGuild(inviteId: string): Promise<number> {
     throw new Error("Invalid invite code");
   }
 
-  // 🔹 Join guild
+  // Join guild
   const { error: joinError } = await supabase
     .from("guild_members")
     .insert({

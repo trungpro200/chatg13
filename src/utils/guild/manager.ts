@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
-/* ================= CHECK OWNER ================= */
+/* CHECK OWNER */
 
 async function checkOwner(guild_id: number): Promise<boolean | null> {
   const { data: guild, error: guildError } = await supabase
@@ -27,7 +27,7 @@ async function checkOwner(guild_id: number): Promise<boolean | null> {
   return user.id === guild.owner_id;
 }
 
-/* ================= RENAME GUILD ================= */
+/* RENAME GUILD */
 
 async function renameGuild(
   guild_id: number,
@@ -55,13 +55,13 @@ async function renameGuild(
   return data;
 }
 
-/* ================= LEAVE GUILD ================= */
+/* LEAVE GUILD */
 
 async function leaveGuild(guild_id: number): Promise<boolean> {
   const isOwner = await checkOwner(guild_id);
 
-  if (isOwner === null) return false; // ❗ an toàn
-  if (isOwner) return false;          // ❌ owner không được rời
+  if (isOwner === null) return false; 
+  if (isOwner) return false; 
 
   const {
     data: { user },

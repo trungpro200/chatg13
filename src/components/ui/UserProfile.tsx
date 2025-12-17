@@ -135,7 +135,7 @@ export default function UserProfile() {
   return (
     <div className="w-full max-w-md mx-auto mt-4 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border">
 
-      {/* 🔥 NAVBAR PROFILE */}
+      {/* NAVBAR PROFILE */}
       <div className="flex items-center gap-3 p-4 border-b dark:border-neutral-700">
         <button
           onClick={() => router.back()}
